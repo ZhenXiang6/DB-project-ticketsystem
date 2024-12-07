@@ -1,63 +1,54 @@
+# client.py
+
 import socket
-from os.path import isfile, getsize
-
-conn_ip = "127.0.0.1"
-conn_port = 8800
-
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # TCP
-client_socket.connect((conn_ip, conn_port))
-
 
 def receive_message(conn):
     try:
-        message = b""
-        first_chunk = conn.recv(4096)
-        if "[TABLE]".encode('utf-8') not in first_chunk:
-            return first_chunk.decode('utf-8')
-        
-        message += first_chunk
+        message = conn.recv(4096).decode('utf-8')
+        if not message:
+            return None
+        return message
+    except Exception as e:
+        print(f"Receive message error: {e}")
+        return None
 
-        while True:
-            chunk = conn.recv(4096)
-            if not chunk:
-                raise ConnectionError("Connection lost while receiving data")
-            message += chunk
-            if "[END]".encode('utf-8') in message:
-                break
-        return message.decode('utf-8').replace("[END]", '').replace("[TABLE]", '')
-    except Exception:
-        print("Receive message error.")
+def main():
+    conn_ip = "127.0.0.1"
+    conn_port = 8800
+
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # TCP
+    try:
+        client_socket.connect((conn_ip, conn_port))
+    except Exception as e:
+        print(f"Failed to connect to server: {e}")
         return
 
-try: 
-    while True:  # Keep receiving and sending message with server
-        
-        recv_msg = receive_message(client_socket)
-        if not recv_msg:
-            print("Connection closed by the server.")
-            break
-        if recv_msg.find("[EXIT]") != -1:
-            print(recv_msg.replace("[EXIT]", ''), end='')
-            break
-        if recv_msg.find("[TABLE]") != -1:
-            print(recv_msg.replace("[TABLE]", '').replace("[END]", ''), end='')
-            # Optional: Implement table parsing/display
+    try:
+        while True:
+            recv_msg = receive_message(client_socket)
+            if recv_msg is None:
+                print("Connection closed by the server.")
+                break
 
-        elif recv_msg.find("[INPUT]") != -1:
-            print(recv_msg.replace("[INPUT]", ''), end='')
+            if "[EXIT]" in recv_msg:
+                print(recv_msg.replace("[EXIT]", '').strip())
+                break
 
-            send_msg = input().strip()
-            while len(send_msg) == 0:
-                print("Input cannot be empty. Please enter again:", end=' ')
-                send_msg = input().strip()
+            if "[TABLE]" in recv_msg:
+                table = recv_msg.replace("[TABLE]", '').replace("[END]", '').strip()
+                print(table)
 
-            if send_msg.lower() == "exit":
-                break            
-            client_socket.send(send_msg.encode('utf-8'))
+            elif "[INPUT]" in recv_msg:
+                prompt = recv_msg.replace("[INPUT]", '').strip()
+                user_input = input(prompt)
+                client_socket.send(user_input.encode('utf-8'))
 
-        else:
-            print(recv_msg, end='')
-        
-finally:
-    print("Connection closed.")
-    client_socket.close()
+            else:
+                print(recv_msg, end='')
+    except KeyboardInterrupt:
+        print("\nExiting the client.")
+    finally:
+        client_socket.close()
+
+if __name__ == '__main__':
+    main()

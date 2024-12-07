@@ -1,15 +1,15 @@
+# models/database.py
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# 資料庫連接資訊
-DATABASE_URL = "postgresql://ticket_user:ticket_pass@localhost/ticketing_system"
+# 使用現有的資料庫使用者（例如，postgres）
+your_password = "1234"
+DATABASE_URL = "postgresql://postgres:" + your_password + "@localhost:5432/ticketsystem"
 
-# 建立資料庫引擎
 engine = create_engine(DATABASE_URL)
 
-# 建立 Session 類別
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 建立 Base 類別
 Base = declarative_base()

@@ -1,0 +1,54 @@
+ticket_system/
+├── action/         
+│   ├── admin/
+│   │   ├── __init__.py
+│   │   ├── AddEvent.py
+│   │   ├── IssueTickets.py
+│   │   ├── QueryUserInfo.py
+│   │   ├── QueryUserPurchaseHistory.py      
+│   ├── event/
+│   │   ├── __init__.py              
+│   │   ├── BuyTicket.py
+│   │   ├── CancelTicket.py
+│   │   ├── ViewEventDetails.py
+│   │   ├── ListEvent.py            
+│   │   ├── SearchEvent.py     
+│   ├── payment/
+│   │   ├── __init__.py               
+│   │   ├── Payment.py 
+│   ├── user/
+│   │   ├── ViewEditUserInfo.py               
+│   │   ├── ViewPurchaseHistory.py           
+│   ├── __init__.py              
+│   ├── Action.py               
+│   ├── Exit.py                 
+│   ├── LogIn.py               
+│   ├── SignUp.py             
+│   ├── Logout.py             
+│   ├── ListHistory.py
+├── models/                    
+│   ├── __init__.py 
+│   ├── database.py 
+│   ├── user.py                  
+│   ├── tickets.py         
+│   ├── events.py             
+│   ├── category.py  
+│   ├── event_venue.py
+│   ├── order_detail.py
+│   ├── order.py  =
+│   ├── organizer.py
+│   ├── payment.py=
+│   ├── venue.py                                
+├── role/                      
+│   ├── __init__.py           
+│   ├── Admin.py
+│   ├── Role.py
+│   ├── User.py
+├── DB_utils.py    
+├── utils.py   
+├── client.py                 
+├── server.py                  
+├── schema.sql                
+├── requirements.txt      
+|── README.md
+└── Architecture.txt                   
