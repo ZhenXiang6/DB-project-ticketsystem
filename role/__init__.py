@@ -1,3 +1,11 @@
 # role/__init__.py
 
-# 空檔案，用於標識 role 為一個 Python 包
+from .Role import Role
+from .Admin import Admin
+from .User import User
+
+__all__ = [
+    "Role",
+    "Admin",
+    "User"
+]

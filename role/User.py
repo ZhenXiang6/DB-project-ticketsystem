@@ -1,29 +1,43 @@
 # role/User.py
 
 from .Role import Role
-from action.Exit import Exit
-from action.Logout import Logout
-from action.event.ListEvent import ListEvent
-from action.ListHistory import ListHistory
-from action.event.ViewEventDetails import ViewEventDetails
-from action.event.BuyTicket import BuyTicket
-from action.event.CancelTicket import CancelTicket
-from action.payment.Payment import Payment
-from action.user.ViewEditUserInfo import ViewEditUserInfo
-from action.user.ViewPurchaseHistory import ViewPurchaseHistory
+from action.event import (
+    buy_ticket_action,
+    cancel_ticket_action,
+    view_event_details_action,
+    list_event_action,
+    search_event_action
+)
+from action.payment import payment_action
+from action.user import (
+    view_edit_user_info_action,
+    view_purchase_history_action
+)
 
 class User(Role):
-    def __init__(self, userid, username, pwd, email):
-        super().__init__(userid, username, pwd, email)
+    def __init__(self, cu_id, role):
+        super().__init__(cu_id, role)
 
-        self.user_action = [
-            ListEvent("List All Available Events"),
-            ViewEventDetails("View Event Details"),
-            BuyTicket("Buy Ticket"),
-            CancelTicket("Cancel Ticket"),
-            Payment("Payment"),
-            ViewPurchaseHistory("View Purchase History"),
-            ViewEditUserInfo("View/Edit User Information"),
-            Logout("Logout"),
-            Exit("Leave System")
-        ]
+    def buy_ticket(self, e_id, t_type, quantity):
+        return buy_ticket_action(self.cu_id, e_id, t_type, quantity)
+
+    def cancel_ticket(self, or_id):
+        return cancel_ticket_action(or_id, self.cu_id)
+
+    def view_event_details(self, e_id):
+        return view_event_details_action(e_id)
+
+    def list_events(self):
+        return list_event_action()
+
+    def search_event(self, search_term):
+        return search_event_action(search_term)
+
+    def make_payment(self, or_id, payment_method, amount):
+        return payment_action(or_id, payment_method, amount)
+
+    def view_edit_user_info(self, field, new_value):
+        return view_edit_user_info_action(self.cu_id, field, new_value)
+
+    def view_purchase_history(self):
+        return view_purchase_history_action(self.cu_id)
