@@ -35,7 +35,9 @@ def main():
                     response = send_request(sock, 'LogIn', {'username': username, 'password': password})
                     if response['status'] == 'success':
                         print(response['message'])
+                        print(response) 
                         user_role = response.get('role', 'User')
+                        print(f"Role: {user_role}")
                         user_menu(sock, user_role)
                     else:
                         print(f"Error: {response['message']}")

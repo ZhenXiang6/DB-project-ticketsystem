@@ -134,50 +134,42 @@ def query_user_purchase_history(cu_id):
     result = db.execute_query(query, (cu_id,))
     return result if result else []
 
-def buy_ticket(cu_id, e_id, t_type, quantity):
+def buy_ticket(e_id, t_type, quantity, cu_id):
     try:
-        db.cursor.execute("BEGIN;")
-        # 取得票券並加鎖以避免並發問題
-        query = """
-        SELECT t_id, price, remain_quantity FROM TICKET
-        WHERE e_id = %s AND t_type = %s FOR UPDATE;
-        """
-        result = db.execute_query(query, (e_id, t_type))
-        if not result:
-            db.cursor.execute("ROLLBACK;")
-            return False, "Ticket type or event does not exist."
-        ticket = result[0]
+        # 檢查票券是否存在且有足夠的餘量
+        query = "SELECT * FROM TICKET WHERE e_id = %s AND t_type = %s;"
+        tickets = db.execute_query(query, (e_id, t_type))
+        if not tickets:
+            return False, "Ticket type does not exist for this event."
+        ticket = tickets[0]
         if ticket['remain_quantity'] < quantity:
-            db.cursor.execute("ROLLBACK;")
-            return False, f"Only {ticket['remain_quantity']} tickets available."
-        # 更新剩餘數量
-        new_remain = ticket['remain_quantity'] - quantity
-        query = "UPDATE TICKET SET remain_quantity = %s WHERE t_id = %s;"
-        db.execute_query(query, (new_remain, ticket['t_id']))
-        # 插入訂單
-        total_amount = float(ticket['price']) * quantity
-        query = """
+            return False, "Not enough tickets available."
+
+        # 更新剩餘票券數量
+        update_query = "UPDATE TICKET SET remain_quantity = remain_quantity - %s WHERE t_id = %s;"
+        db.execute_query(update_query, (quantity, ticket['t_id']))
+
+        # 創建訂單
+        insert_order_query = """
         INSERT INTO "ORDER" (cu_id, or_date, total_amount, payment_status, is_canceled)
-        VALUES (%s, %s, %s, 'Pending', FALSE) RETURNING or_id;
+        VALUES (%s, %s, %s, %s, %s) RETURNING or_id;
         """
-        result = db.execute_query(query, (cu_id, datetime.now(), total_amount))
-        if not result:
-            db.cursor.execute("ROLLBACK;")
-            return False, "Failed to create order."
-        or_id = result[0]['or_id']
-        # 插入訂單明細
-        query = """
+        total_amount = ticket['price'] * quantity
+        order = db.execute_query(insert_order_query, (cu_id, datetime.now(), total_amount, 'Pending', False))
+        or_id = order[0]['or_id']
+
+        # 創建訂單詳情
+        insert_order_detail_query = """
         INSERT INTO ORDER_DETAIL (or_id, t_id, quantity, subtotal)
         VALUES (%s, %s, %s, %s);
         """
-        db.execute_query(query, (or_id, ticket['t_id'], quantity, total_amount))
-        # 提交交易
-        db.cursor.execute("COMMIT;")
+        db.execute_query(insert_order_detail_query, (or_id, ticket['t_id'], quantity, total_amount))
+
         return True, f"Successfully purchased {quantity} ticket(s) for event {e_id}."
+
     except Exception as e:
-        db.cursor.execute("ROLLBACK;")
-        print(f"Buy ticket error: {e}")
-        return False, "Failed to purchase ticket."
+        print(f"Database error during ticket purchase: {e}")
+        return False, "Failed to purchase ticket due to a server error."
 
 def cancel_ticket(or_id, cu_id):
     # 更新訂單為已取消，並恢復票券數量

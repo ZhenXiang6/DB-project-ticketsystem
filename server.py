@@ -68,7 +68,7 @@ def handle_client(client_socket, address):
                     else:
                         user = User(cu_id, role)
                     connected_users[client_socket] = user
-                    response = {"status": "success", "message": f"Logged in as {role}."}
+                    response = {"status": "success", "message": f"Logged in as {role}.", "role": role}
                 else:
                     response = {"status": "error", "message": result}
 
@@ -133,13 +133,15 @@ def handle_client(client_socket, address):
                     e_id = params.get('e_id')
                     t_type = params.get('t_type')
                     quantity = params.get('quantity')
-                    success, message = user.buy_ticket(e_id, t_type, quantity)
+                    cu_id = user.cu_id  # 獲取用戶 ID
+                    success, message = buy_ticket_action(e_id, t_type, quantity, cu_id)
                     if success:
                         response = {"status": "success", "message": message}
                     else:
                         response = {"status": "error", "message": message}
                 else:
                     response = {"status": "error", "message": "Please log in as a user."}
+
 
             elif action == 'CancelTicket':
                 if isinstance(user, User):
@@ -221,15 +223,18 @@ def handle_client(client_socket, address):
                 response = {"status": "error", "message": "Invalid action."}
 
             # 發送回應
-            client_socket.sendall(json.dumps(response).encode('utf-8'))
+            client_socket.sendall(json.dumps(response, cls=DateTimeEncoder).encode('utf-8'))
 
         except json.JSONDecodeError:
             response = {"status": "error", "message": "Invalid JSON format."}
-            client_socket.sendall(json.dumps(response).encode('utf-8'))
+            client_socket.sendall(json.dumps(response, cls=DateTimeEncoder).encode('utf-8'))
         except Exception as e:
             print(f"Error handling client {address}: {e}")
             response = {"status": "error", "message": "An error occurred on the server."}
-            client_socket.sendall(json.dumps(response).encode('utf-8'))
+            try:
+                client_socket.sendall(json.dumps(response, cls=DateTimeEncoder).encode('utf-8'))
+            except:
+                pass
             break
 
     print(f"Connection closed from {address}")
