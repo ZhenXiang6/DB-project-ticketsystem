@@ -40,7 +40,7 @@ class Database:
 db = Database(
     dbname='ticketsystem',
     user='postgres',
-    password='your_password',  # 替換為您的密碼
+    password='1234',  # 替換為您的密碼
     host='localhost',
     port=5432
 )

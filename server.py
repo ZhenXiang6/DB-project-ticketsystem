@@ -3,6 +3,7 @@
 import socket
 import threading
 import json
+from datetime import datetime
 from role import Admin, User
 from action import (
     signup_action,
@@ -23,6 +24,7 @@ from action import (
     list_history_action
 )
 from utils import format_response
+from DB_utils import db
 
 # Server configuration
 HOST = '127.0.0.1'
@@ -234,6 +236,14 @@ def handle_client(client_socket, address):
     if client_socket in connected_users:
         connected_users.pop(client_socket)
     client_socket.close()
+
+
+# 自定義 JSON 編碼器
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

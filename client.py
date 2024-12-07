@@ -35,7 +35,8 @@ def main():
                     response = send_request(sock, 'LogIn', {'username': username, 'password': password})
                     if response['status'] == 'success':
                         print(response['message'])
-                        user_menu(sock)
+                        user_role = response.get('role', 'User')
+                        user_menu(sock, user_role)
                     else:
                         print(f"Error: {response['message']}")
 
@@ -62,7 +63,83 @@ def main():
         except KeyboardInterrupt:
             print("\nExiting client.")
 
-def user_menu(sock):
+def user_menu(sock, role):
+    if role.lower() == 'admin':
+        admin_menu(sock)
+    else:
+        regular_user_menu(sock)
+
+def admin_menu(sock):
+    while True:
+        print("\n----------------------------------------")
+        print("Admin Menu - Please select an action:")
+        print("[1] Add Event")
+        print("[2] Issue Tickets")
+        print("[3] Query User Info")
+        print("[4] Query User Purchase History")
+        print("[5] Log Out")
+        choice = input("---> ").strip()
+
+        if choice == '1':
+            e_name = input("Enter Event Name: ").strip()
+            c_id = int(input("Enter Category ID: ").strip())
+            o_id = int(input("Enter Organizer ID: ").strip())
+            e_datetime = input("Enter Event Date and Time (YYYY-MM-DD HH:MM:SS): ").strip()
+            e_location = input("Enter Event Location: ").strip()
+            description = input("Enter Event Description: ").strip()
+            response = send_request(sock, 'AddEvent', {
+                'e_name': e_name,
+                'c_id': c_id,
+                'o_id': o_id,
+                'e_datetime': e_datetime,
+                'e_location': e_location,
+                'description': description
+            })
+            print(response.get('message', ''))
+
+        elif choice == '2':
+            e_id = int(input("Enter Event ID: ").strip())
+            t_type = input("Enter Ticket Type: ").strip()
+            price = float(input("Enter Ticket Price: ").strip())
+            total_quantity = int(input("Enter Total Quantity: ").strip())
+            response = send_request(sock, 'IssueTickets', {
+                'e_id': e_id,
+                't_type': t_type,
+                'price': price,
+                'total_quantity': total_quantity
+            })
+            print(response.get('message', ''))
+
+        elif choice == '3':
+            cu_id = int(input("Enter Customer ID to Query: ").strip())
+            response = send_request(sock, 'QueryUserInfo', {'cu_id': cu_id})
+            if response['status'] == 'success':
+                user_info = response['data']
+                for key, value in user_info.items():
+                    print(f"{key}: {value}")
+            else:
+                print(response['message'])
+
+        elif choice == '4':
+            cu_id = int(input("Enter Customer ID to Query Purchase History: ").strip())
+            response = send_request(sock, 'QueryUserPurchaseHistory', {'cu_id': cu_id})
+            if response['status'] == 'success':
+                history = response['data']
+                for record in history:
+                    print(f"Order ID: {record['or_id']}, Event: {record['e_name']}, Ticket Type: {record['t_type']}, Quantity: {record['quantity']}, Subtotal: {record['subtotal']}, Date: {record['or_date']}, Payment Status: {record['payment_status']}")
+            else:
+                print(response['message'])
+
+        elif choice == '5':
+            response = send_request(sock, 'LogOut')
+            print(response.get('message', ''))
+            break
+
+        else:
+            print("Invalid option. Please try again.")
+
+
+def regular_user_menu(sock):
     while True:
         print("\n----------------------------------------")
         print("Please select an action:")
@@ -165,6 +242,7 @@ def user_menu(sock):
 
         else:
             print("Invalid option. Please try again.")
+
 
 if __name__ == "__main__":
     main()
