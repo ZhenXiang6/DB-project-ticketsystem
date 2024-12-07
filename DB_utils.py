@@ -4,9 +4,12 @@ import sys
 import psycopg2
 from tabulate import tabulate
 from threading import Lock
-from models import Base, Customer, Category, Organizer, Event, Ticket, TicketType, Order, OrderDetail, Payment, Venue, EventVenue
+from models import Base, Customer, Category, Organizer, Event, Ticket, Order, OrderDetail, Payment, Venue, EventVenue
 from sqlalchemy.orm import sessionmaker
 from models.database import engine
+from sqlalchemy import func
+from datetime import datetime
+
 
 # 建立資料庫連接
 Base.metadata.create_all(bind=engine)
@@ -89,15 +92,14 @@ def get_event_details(event_id):
 
 def list_ticket_types(event_id):
     try:
-        ticket_types = session.query(TicketType).filter_by(e_id=event_id).all()
-        if not ticket_types:
+        tickets = session.query(Ticket).filter_by(e_id=event_id).all()
+        if not tickets:
             return None
         data = []
-        for tt in ticket_types:
-            ticket = session.query(Ticket).filter_by(e_id=tt.e_id, t_type=tt.t_type).first()
+        for ticket in tickets:
             data.append([
-                tt.t_type,
-                tt.price,
+                ticket.t_type,
+                ticket.price,
                 ticket.total_quantity,
                 ticket.remain_quantity
             ])
@@ -106,6 +108,7 @@ def list_ticket_types(event_id):
     except Exception as e:
         print(f"List ticket types error: {e}")
         return None
+
 
 def buy_ticket(user_id, event_id, t_type, quantity):
     try:
@@ -118,7 +121,7 @@ def buy_ticket(user_id, event_id, t_type, quantity):
         total_amount = ticket.price * quantity
 
         # 創建訂單
-        new_order = Order(cu_id=user_id, or_date=datetime.now(), total_amount=total_amount, payment_status='Pending')
+        new_order = Order(cu_id=user_id, or_date=datetime.now().date(), total_amount=total_amount, payment_status='Pending')
         session.add(new_order)
         session.commit()
         session.refresh(new_order)
@@ -137,6 +140,7 @@ def buy_ticket(user_id, event_id, t_type, quantity):
         print(f"Buy ticket error: {e}")
         return False, f"Purchase failed: {str(e)}"
 
+
 def list_user_purchases_history(user_id):
     try:
         orders = session.query(Order).filter_by(cu_id=user_id).order_by(Order.or_date.desc()).all()
@@ -150,15 +154,16 @@ def list_user_purchases_history(user_id):
                     detail.ticket.event.e_name,
                     detail.ticket.t_type,
                     detail.quantity,
-                    detail.unit_price,
+                    detail.subtotal,  # 使用 'subtotal' 取代 'unit_price'
                     order.or_date.strftime('%Y-%m-%d %H:%M:%S'),
                     order.payment_status
                 ])
-        headers = ["Order ID", "Event Name", "Ticket Type", "Quantity", "Unit Price", "Order Date", "Payment Status"]
+        headers = ["Order ID", "Event Name", "Ticket Type", "Quantity", "Subtotal", "Order Date", "Payment Status"]
         return tabulate(data, headers=headers, tablefmt="github")
     except Exception as e:
         print(f"List user purchases history error: {e}")
         return None
+
 
 def list_pending_orders(user_id):
     try:
@@ -225,16 +230,16 @@ def list_user_purchases(user_id):
                     detail.ticket.event.e_name,
                     detail.ticket.t_type,
                     detail.quantity,
-                    detail.unit_price,
-                    detail.subtotal,
+                    detail.subtotal,  # 使用 'subtotal' 取代 'unit_price'
                     order.or_date.strftime('%Y-%m-%d %H:%M:%S'),
                     order.payment_status
                 ])
-        headers = ["Order ID", "Event Name", "Ticket Type", "Quantity", "Unit Price", "Subtotal", "Order Date", "Payment Status"]
+        headers = ["Order ID", "Event Name", "Ticket Type", "Quantity", "Subtotal", "Order Date", "Payment Status"]
         return tabulate(data, headers=headers, tablefmt="github")
     except Exception as e:
         print(f"List user purchases error: {e}")
         return None
+
 
 def list_categories():
     try:
@@ -289,14 +294,10 @@ def issue_ticket(e_id, t_type, price, total_quantity):
         if not event:
             return False, "Event ID does not exist."
 
-        # 檢查票種是否已存在
-        existing_tt = session.query(TicketType).filter_by(e_id=e_id, t_type=t_type).first()
-        if existing_tt:
+        # 檢查票種是否已存在於 TICKET 表中
+        existing_ticket = session.query(Ticket).filter_by(e_id=e_id, t_type=t_type).first()
+        if existing_ticket:
             return False, "Ticket type already exists for this event."
-
-        # 創建 TicketType
-        ticket_type = TicketType(e_id=e_id, t_type=t_type, price=price)
-        session.add(ticket_type)
 
         # 創建 Ticket
         ticket = Ticket(
@@ -314,6 +315,8 @@ def issue_ticket(e_id, t_type, price, total_quantity):
         session.rollback()
         print(f"Issue ticket error: {e}")
         return False, f"Issue ticket failed: {str(e)}"
+
+
 
 def search_events(search_term):
     try:
