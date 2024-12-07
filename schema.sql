@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS EVENT (
 CREATE TABLE IF NOT EXISTS TICKET (
     t_id SERIAL PRIMARY KEY,
     e_id INT NOT NULL,
-    t_type VARCHAR(10) NOT NULL,
+    t_type VARCHAR(50) NOT NULL,
     price DECIMAL(10,2) NOT NULL CHECK (price > 0),
     total_quantity INT NOT NULL CHECK (total_quantity >= 0),
     remain_quantity INT NOT NULL CHECK (remain_quantity >= 0),
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS TICKET (
 -- 表5: CUSTOMER
 CREATE TABLE IF NOT EXISTS CUSTOMER (
     cu_id SERIAL PRIMARY KEY,
-    cu_name VARCHAR(30) NOT NULL,
+    cu_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL, -- 把 varchar 從 15 改成 100
     phone_number VARCHAR(15),
     address TEXT,
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS "ORDER" (
     cu_id INT NOT NULL,
     or_date TIMESTAMP NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount > 0),
-    payment_status VARCHAR(10) NOT NULL DEFAULT 'Pending',
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'Pending',
     is_canceled BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (cu_id) REFERENCES CUSTOMER(cu_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
