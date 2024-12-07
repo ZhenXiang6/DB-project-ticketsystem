@@ -1,78 +1,105 @@
-# Ticketing System
+# 售票系統
 
-## 介紹
+一個基於命令行的售票系統，允許用戶註冊、登錄、瀏覽活動、購買票券、處理付款以及管理個人資訊。管理員擁有額外的功能，如新增活動、發行票券以及查詢用戶資訊和購買歷史。
 
-這是一個簡單的售票系統，允許用戶查看活動、購買票券、管理個人資訊等。同時，管理員可以新增活動、發行票券、查詢用戶資訊及購票紀錄。
+## 目錄
+
+- [功能](#功能)
+- [先決條件](#先決條件)
+- [安裝](#安裝)
+- [資料庫設置](#資料庫設置)
+- [配置](#配置)
+- [運行應用程式](#運行應用程式)
+  - [啟動伺服器](#啟動伺服器)
+  - [啟動客戶端](#啟動客戶端)
+- [使用指南](#使用指南)
+  - [用戶註冊與登錄](#用戶註冊與登錄)
+  - [瀏覽活動](#瀏覽活動)
+  - [購買票券](#購買票券)
+  - [處理付款](#處理付款)
+  - [查看購買歷史](#查看購買歷史)
+  - [編輯用戶資訊](#編輯用戶資訊)
+  - [管理員功能](#管理員功能)
+- [管理員設置](#管理員設置)
 
 ## 功能
 
-### 用戶功能
+### 所有用戶
 
-1. **查詢活動細節**：查看活動的詳細資訊。
-2. **購買票券**：選擇活動、票種並購買票券。
-3. **取消購買票券**：取消已購買的票券。
-4. **付款**：處理訂單付款。
-5. **查看及編輯使用者資訊**：管理個人資訊。
-6. **查看購買紀錄**：查看過往的購票紀錄。
+- **註冊與登錄：** 創建新帳戶或登錄現有帳戶。
+- **瀏覽活動：** 查看所有即將舉行的活動列表。
+- **查看活動詳情：** 獲取特定活動的詳細資訊。
+- **購買票券：** 為活動購買票券，選擇票種和數量。
+- **處理付款：** 使用各種付款方式完成待付款訂單。
+- **查看購買歷史：** 查看所有過去和當前的票券購買記錄。
+- **編輯個人資訊：** 更新用戶名、密碼、電子郵件、電話號碼和地址。
 
-### 管理員功能
+### 管理員
 
-1. **發行票券**：新增不同區段的票價。
-2. **新增活動**：新增活動及其細節。
-3. **查詢使用者資訊**：查看用戶的個人資訊。
-4. **查詢使用者購買紀錄**：查看用戶的購票紀錄。
+- **新增活動：** 創建具有詳細資訊的新活動。
+- **發行票券：** 為活動新增不同類型的票券。
+- **查詢用戶資訊：** 查看系統中任何用戶的詳細資訊。
+- **查詢用戶購買歷史：** 存取任何用戶的購買歷史記錄。
+
+## 先決條件
+
+- **Python 3.7 或更高版本**
+- **PostgreSQL 12 或更高版本**
+- **Git**
 
 ## 安裝
 
-1. **克隆專案**
-    ```bash
-    git clone https://github.com/your-username/ticket_system.git
-    cd ticket_system
-    ```
+1. **克隆倉庫**（如果適用）
 
-2. **安裝依賴**
-    ```bash
-    pip install -r requirements.txt
-    ```
+   git clone https://github.com/ZhenXiang6/DB-project-ticketsystem
+   cd ticketing-system
 
-3. **配置資料庫**
-    - 確保 PostgreSQL 已安裝並運行。
-    - 建立資料庫 `ticketsystem` 
-    - 修改 `models/database.py` 中的 `DATABASE_URL` 以符合您的資料庫設定。
+2. **安裝所需的 Python 套件**
 
-4. **執行資料庫腳本**
-    ```bash
-    psql -U ticket_user -d ticketing_system -f schema.sql
-    ```
+   pip install -r requirements.txt
 
-## 使用
+3. **創建 PostgreSQL 資料庫**
+
+    透過backup檔來建置資料庫
+
+## 配置
+
+1. **資料庫連接字串**
+
+   更新 models/database.py 中的 DATABASE_URL 以符合您的 PostgreSQL 資料庫憑證。
+   # models/database.py
+
+    # 請根據您的資料庫設定更改以下變數
+    your_username = "postgres"
+    your_password = "1234"
+
+    DATABASE_URL = "postgresql://" + your_username + ":" + your_password + "@localhost:5432/ticketsystem"
+
+
+## 運行應用程式
 
 1. **啟動伺服器**
-    ```bash
+
+    cd ticketing-system
     python server.py
-    ```
+
+    您應該會看到類似以下的輸出：
+    Server listening on 127.0.0.1:8800 ...
 
 2. **啟動客戶端**
-    ```bash
+
+    cd ticketing-system
     python client.py
-    ```
+    
+    您應該會看到類似以下的輸出：
+    Connected to the Ticketing System server.
 
-3. **操作流程**
-    - 在客戶端，選擇登入或註冊。
-    - 根據角色（用戶或管理員）進行相應的操作。
+    ----------------------------------------
+    Welcome to the Ticketing System! Please select your option:
+    [1] Log-in
+    [2] Sign-up
+    [3] Leave System
+    --->
 
-## 測試
-
-使用 `pytest` 進行測試。
-
-1. **安裝 pytest**
-    ```bash
-    pip install pytest
-    ```
-
-2. **運行測試**
-    ```bash
-    pytest
-    ```
 
 

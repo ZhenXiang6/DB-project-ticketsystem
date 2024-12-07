@@ -1,13 +1,15 @@
+-- schema.sql
+
 -- 表1: CATEGORY
 CREATE TABLE IF NOT EXISTS CATEGORY (
     c_id SERIAL PRIMARY KEY,
-    c_name VARCHAR(15) NOT NULL UNIQUE
+    c_name VARCHAR(15) NOT NULL
 );
 
 -- 表2: ORGANIZER
 CREATE TABLE IF NOT EXISTS ORGANIZER (
     o_id SERIAL PRIMARY KEY,
-    o_name VARCHAR(15) NOT NULL UNIQUE,
+    o_name VARCHAR(15) NOT NULL,
     contact_info VARCHAR(15)
 );
 
@@ -29,9 +31,9 @@ CREATE TABLE IF NOT EXISTS TICKET (
     t_id SERIAL PRIMARY KEY,
     e_id INT NOT NULL,
     t_type VARCHAR(10) NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
-    total_quantity INT NOT NULL,
-    remain_quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL CHECK (price > 0),
+    total_quantity INT NOT NULL CHECK (total_quantity >= 0),
+    remain_quantity INT NOT NULL CHECK (remain_quantity >= 0),
     FOREIGN KEY (e_id) REFERENCES EVENT(e_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -41,15 +43,17 @@ CREATE TABLE IF NOT EXISTS CUSTOMER (
     cu_name VARCHAR(15) NOT NULL,
     email VARCHAR(15) UNIQUE NOT NULL,
     phone_number VARCHAR(15),
-    address TEXT
+    address TEXT,
+    pwd VARCHAR(128) NOT NULL,
+    role VARCHAR(10) NOT NULL DEFAULT 'User'
 );
 
--- 表6: "ORDER"
+-- 表6: ORDER
 CREATE TABLE IF NOT EXISTS "ORDER" (
     or_id SERIAL PRIMARY KEY,
     cu_id INT NOT NULL,
-    or_date DATE NOT NULL,
-    total_amount DECIMAL(10,2) NOT NULL,
+    or_date TIMESTAMP NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount > 0),
     payment_status VARCHAR(10) NOT NULL DEFAULT 'Pending',
     is_canceled BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (cu_id) REFERENCES CUSTOMER(cu_id) ON DELETE CASCADE ON UPDATE CASCADE
@@ -59,8 +63,8 @@ CREATE TABLE IF NOT EXISTS "ORDER" (
 CREATE TABLE IF NOT EXISTS ORDER_DETAIL (
     or_id INT NOT NULL,
     t_id INT NOT NULL,
-    quantity INT NOT NULL,
-    subtotal DECIMAL(10,2) NOT NULL,
+    quantity INT NOT NULL CHECK (quantity > 0),
+    subtotal DECIMAL(10,2) NOT NULL CHECK (subtotal > 0),
     PRIMARY KEY (or_id, t_id),
     FOREIGN KEY (or_id) REFERENCES "ORDER"(or_id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (t_id) REFERENCES TICKET(t_id) ON DELETE CASCADE ON UPDATE CASCADE
@@ -72,16 +76,16 @@ CREATE TABLE IF NOT EXISTS PAYMENT (
     or_id INT NOT NULL,
     payment_method VARCHAR(10) NOT NULL,
     payment_datetime TIMESTAMP NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
     FOREIGN KEY (or_id) REFERENCES "ORDER"(or_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- 表9: VENUE
 CREATE TABLE IF NOT EXISTS VENUE (
     v_id SERIAL PRIMARY KEY,
-    v_name VARCHAR(15) NOT NULL UNIQUE,
+    v_name VARCHAR(15) NOT NULL,
     address TEXT,
-    capacity INT NOT NULL,
+    capacity INT NOT NULL CHECK (capacity > 0),
     contact_info VARCHAR(15)
 );
 
