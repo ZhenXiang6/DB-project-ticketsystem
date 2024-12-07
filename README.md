@@ -31,55 +31,55 @@
 
 1. **克隆倉庫**（如果適用）
 
-   - git clone https://github.com/ZhenXiang6/DB-project-ticketsystem
-   - cd ticketing-system
+- git clone https://github.com/ZhenXiang6/DB-project-ticketsystem
+- cd ticketing-system
 
 2. **安裝所需的 Python 套件**
 
-   - pip install -r requirements.txt
+- pip install -r requirements.txt
 
 3. **創建 PostgreSQL 資料庫**
 
-    - 透過backup檔來建置資料庫
+- 透過backup檔來建置資料庫
 
 ## 配置
 
 1. **資料庫連接字串**
 
-   - 更新 models/database.py 中的 DATABASE_URL 以符合您的 PostgreSQL 資料庫憑證。
-   - # models/database.py
+- 更新 models/database.py 中的 DATABASE_URL 以符合您的 PostgreSQL 資料庫憑證。
+- # models/database.py
 
-    # 請根據您的資料庫設定更改以下變數
-    - your_username = "postgres"
-    - your_password = "1234"
+# 請根據您的資料庫設定更改以下變數
+- your_username = "postgres"
+- your_password = "1234"
 
-    - DATABASE_URL = "postgresql://" + your_username + ":" + your_password + "@localhost:5432/ticketsystem"
+- DATABASE_URL = "postgresql://" + your_username + ":" + your_password + "@localhost:5432/ticketsystem"
 
 
 ## 運行應用程式
 
 1. **啟動伺服器**
 
-    - cd ticketing-system
-    - python server.py
+- cd ticketing-system
+- python server.py
 
-    您應該會看到類似以下的輸出：
-    - Server listening on 127.0.0.1:8800 ...
+您應該會看到類似以下的輸出：
+- Server listening on 127.0.0.1:8800 ...
 
 2. **啟動客戶端**
 
-    - cd ticketing-system
-    - python client.py
+- cd ticketing-system
+- python client.py
     
-    您應該會看到類似以下的輸出：
-    - Connected to the Ticketing System server.
+您應該會看到類似以下的輸出：
+- Connected to the Ticketing System server.
 
-    ----------------------------------------
-    Welcome to the Ticketing System! Please select your option:
-    [1] Log-in
-    [2] Sign-up
-    [3] Leave System
-    --->
+   ----------------------------------------  
+   Welcome to the Ticketing System! Please select your option:  
+   [1] Log-in  
+   [2] Sign-up  
+   [3] Leave System  
+   --->
 
 
 
