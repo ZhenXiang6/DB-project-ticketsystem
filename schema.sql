@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS CUSTOMER (
     cu_id SERIAL PRIMARY KEY,
     cu_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL, -- 把 varchar 從 15 改成 100
-    phone_number VARCHAR(15),
+    phone_number VARCHAR(50),
     address TEXT,
     pwd VARCHAR(128) NOT NULL,
     role VARCHAR(10) NOT NULL DEFAULT 'User'

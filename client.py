@@ -3,18 +3,46 @@
 import socket
 import json
 
-# Server configuration
 HOST = '127.0.0.1'
 PORT = 8800
 
-def send_request(sock, action, params=None):
+def send_json_request(sock, action, params=None):
     request = {
         "action": action,
         "params": params or {}
     }
-    sock.sendall(json.dumps(request).encode('utf-8'))
-    response = sock.recv(4096).decode('utf-8')
-    return json.loads(response)
+    data_str = json.dumps(request)
+    length_str = str(len(data_str)).encode('utf-8') + b'\n'
+    sock.sendall(length_str)
+    sock.sendall(data_str.encode('utf-8'))
+
+def recv_json_response(sock):
+    # 先讀取長度行
+    length_line = b''
+    while True:
+        ch = sock.recv(1)
+        if not ch:
+            return None
+        if ch == b'\n':
+            break
+        length_line += ch
+    length = int(length_line.decode('utf-8'))
+
+    # 根據長度讀取JSON
+    data = b''
+    while len(data) < length:
+        chunk = sock.recv(length - len(data))
+        if not chunk:
+            return None
+        data += chunk
+    return json.loads(data.decode('utf-8'))
+
+def send_request(sock, action, params=None):
+    send_json_request(sock, action, params)
+    response = recv_json_response(sock)
+    if response is None:
+        return {"status": "error", "message": "No response from server."}
+    return response
 
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -35,7 +63,6 @@ def main():
                     response = send_request(sock, 'LogIn', {'username': username, 'password': password})
                     if response['status'] == 'success':
                         print(response['message'])
-                        print(response) 
                         user_role = response.get('role', 'User')
                         print(f"Role: {user_role}")
                         user_menu(sock, user_role)

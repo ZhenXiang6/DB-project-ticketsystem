@@ -1,10 +1,10 @@
-# server.py
-
 import socket
 import threading
 import json
 from datetime import datetime
+from decimal import Decimal
 from role import Admin, User
+import logging
 from action import (
     signup_action,
     login_action,
@@ -23,25 +23,62 @@ from action import (
     view_purchase_history_action,
     list_history_action
 )
-from utils import format_response
+from utils import format_response, serialize_datetimes
 from DB_utils import db
 
-# Server configuration
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 HOST = '127.0.0.1'
 PORT = 8800
-
-# Dictionary to store connected users: client_socket -> user_role
 connected_users = {}
 
+class DateTimeDecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        elif isinstance(obj, Decimal):
+            return str(obj)  # 使用 str 保持精度
+        return super().default(obj)
+
+
+def send_json_response(client_socket, response):
+    # 將 response 轉為 JSON 字串
+    serialized = json.dumps(response, cls=DateTimeDecimalEncoder)
+    # 傳送長度 + '\n'
+    length_str = str(len(serialized)).encode('utf-8') + b'\n'
+    client_socket.sendall(length_str)
+    # 傳送實際 JSON
+    client_socket.sendall(serialized.encode('utf-8'))
+
+def recv_json_request(client_socket):
+    # 先讀取長度行
+    length_line = b''
+    while True:
+        ch = client_socket.recv(1)
+        if not ch:
+            return None
+        if ch == b'\n':
+            break
+        length_line += ch
+    length = int(length_line.decode('utf-8'))
+    # 根據長度讀取完整 JSON
+    data = b''
+    while len(data) < length:
+        chunk = client_socket.recv(length - len(data))
+        if not chunk:
+            return None
+        data += chunk
+    return json.loads(data.decode('utf-8'))
+
+
 def handle_client(client_socket, address):
-    print(f"Accepted connection from {address}")
+    logging.info(f"Accepted connection from {address}")
     user = None
     while True:
         try:
-            data = client_socket.recv(4096).decode('utf-8')
-            if not data:
+            request = recv_json_request(client_socket)
+            if request is None:
                 break
-            request = json.loads(data)
             action = request.get('action')
             params = request.get('params', {})
             response = {}
@@ -114,6 +151,7 @@ def handle_client(client_socket, address):
                     cu_id = params.get('cu_id')
                     user_info = user.query_user_info(cu_id)
                     if user_info:
+                        user_info = serialize_datetimes(user_info)
                         response = {"status": "success", "data": user_info}
                     else:
                         response = {"status": "error", "message": "User not found."}
@@ -124,7 +162,11 @@ def handle_client(client_socket, address):
                 if isinstance(user, Admin):
                     cu_id = params.get('cu_id')
                     history = user.query_user_purchase_history(cu_id)
-                    response = {"status": "success", "data": history}
+                    if history:
+                        history = serialize_datetimes(history)
+                        response = {"status": "success", "data": history}
+                    else:
+                        response = {"status": "error", "message": "Purchase history not found."}
                 else:
                     response = {"status": "error", "message": "Unauthorized action. Admins only."}
 
@@ -133,7 +175,7 @@ def handle_client(client_socket, address):
                     e_id = params.get('e_id')
                     t_type = params.get('t_type')
                     quantity = params.get('quantity')
-                    cu_id = user.cu_id  # 獲取用戶 ID
+                    cu_id = user.cu_id
                     success, message = buy_ticket_action(e_id, t_type, quantity, cu_id)
                     if success:
                         response = {"status": "success", "message": message}
@@ -142,11 +184,10 @@ def handle_client(client_socket, address):
                 else:
                     response = {"status": "error", "message": "Please log in as a user."}
 
-
             elif action == 'CancelTicket':
                 if isinstance(user, User):
                     or_id = params.get('or_id')
-                    success, message = user.cancel_ticket(or_id)
+                    success, message = cancel_ticket_action(or_id, user.cu_id)
                     if success:
                         response = {"status": "success", "message": message}
                     else:
@@ -161,6 +202,7 @@ def handle_client(client_socket, address):
                 else:
                     details = view_event_details_action(e_id)
                 if details:
+                    details = serialize_datetimes(details)
                     response = {"status": "success", "data": details}
                 else:
                     response = {"status": "error", "message": "Event not found."}
@@ -170,7 +212,11 @@ def handle_client(client_socket, address):
                     events = user.list_events()
                 else:
                     events = list_event_action()
-                response = {"status": "success", "data": events}
+                if events:
+                    events = serialize_datetimes(events)
+                    response = {"status": "success", "data": events}
+                else:
+                    response = {"status": "error", "message": "No events found."}
 
             elif action == 'SearchEvent':
                 search_term = params.get('search_term')
@@ -178,14 +224,18 @@ def handle_client(client_socket, address):
                     events = user.search_event(search_term)
                 else:
                     events = search_event_action(search_term)
-                response = {"status": "success", "data": events}
+                if events:
+                    events = serialize_datetimes(events)
+                    response = {"status": "success", "data": events}
+                else:
+                    response = {"status": "error", "message": "No matching events found."}
 
             elif action == 'Payment':
                 if isinstance(user, User):
                     or_id = params.get('or_id')
                     payment_method = params.get('payment_method')
                     amount = params.get('amount')
-                    success, message = user.make_payment(or_id, payment_method, amount)
+                    success, message = payment_action(or_id, payment_method, amount)
                     if success:
                         response = {"status": "success", "message": message}
                     else:
@@ -197,7 +247,7 @@ def handle_client(client_socket, address):
                 if isinstance(user, User):
                     field = params.get('field')
                     new_value = params.get('new_value')
-                    success, message = user.view_edit_user_info(field, new_value)
+                    success, message = view_edit_user_info_action(user.cu_id, field, new_value)
                     if success:
                         response = {"status": "success", "message": message}
                     else:
@@ -208,60 +258,59 @@ def handle_client(client_socket, address):
             elif action == 'ViewPurchaseHistory':
                 if isinstance(user, User):
                     history = user.view_purchase_history()
-                    response = {"status": "success", "data": history}
+                    if history:
+                        history = serialize_datetimes(history)
+                        response = {"status": "success", "data": history}
+                    else:
+                        response = {"status": "error", "message": "No purchase history found."}
                 else:
                     response = {"status": "error", "message": "Please log in as a user."}
 
             elif action == 'ListHistory':
                 if isinstance(user, User):
                     history = list_history_action(user.cu_id)
-                    response = {"status": "success", "data": history}
+                    if history:
+                        history = serialize_datetimes(history)
+                        response = {"status": "success", "data": history}
+                    else:
+                        response = {"status": "error", "message": "No history found."}
                 else:
                     response = {"status": "error", "message": "Please log in as a user."}
+
+            elif action == 'Exit':
+                message = exit_action()
+                response = {"status": "success", "message": message}
+                send_json_response(client_socket, response)
+                break
 
             else:
                 response = {"status": "error", "message": "Invalid action."}
 
-            # 發送回應
-            client_socket.sendall(json.dumps(response, cls=DateTimeEncoder).encode('utf-8'))
+            send_json_response(client_socket, response)
 
-        except json.JSONDecodeError:
-            response = {"status": "error", "message": "Invalid JSON format."}
-            client_socket.sendall(json.dumps(response, cls=DateTimeEncoder).encode('utf-8'))
         except Exception as e:
-            print(f"Error handling client {address}: {e}")
+            logging.error(f"Error handling client {address}: {e}")
             response = {"status": "error", "message": "An error occurred on the server."}
-            try:
-                client_socket.sendall(json.dumps(response, cls=DateTimeEncoder).encode('utf-8'))
-            except:
-                pass
+            send_json_response(client_socket, response)
             break
 
-    print(f"Connection closed from {address}")
+    logging.info(f"Connection closed from {address}")
     if client_socket in connected_users:
         connected_users.pop(client_socket)
     client_socket.close()
-
-
-# 自定義 JSON 編碼器
-class DateTimeEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        return super().default(obj)
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((HOST, PORT))
     server.listen()
-    print(f"Server listening on {HOST}:{PORT}...")
+    logging.info(f"Server listening on {HOST}:{PORT}...")
     try:
         while True:
             client_socket, addr = server.accept()
-            client_handler = threading.Thread(target=handle_client, args=(client_socket, addr))
-            client_handler.start()
+            thread = threading.Thread(target=handle_client, args=(client_socket, addr))
+            thread.start()
     except KeyboardInterrupt:
-        print("\nShutting down server.")
+        logging.info("Shutting down server.")
     finally:
         server.close()
         db.close()

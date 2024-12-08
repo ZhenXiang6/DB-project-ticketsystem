@@ -5,6 +5,7 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 import sys
 from datetime import datetime
+from decimal import Decimal
 
 class Database:
     def __init__(self, dbname, user, password, host='localhost', port=5432):
@@ -85,13 +86,15 @@ def email_exists(email):
 
 def add_event(e_name, c_id, o_id, e_datetime, e_location, description):
     query = """
-    INSERT INTO EVENT (e_name, c_id, o_id, e_datetime, e_location, description)
-    VALUES (%s, %s, %s, %s, %s, %s) RETURNING e_id;
+    INSERT INTO EVENT (e_id, e_name, c_id, o_id, e_datetime, e_location, description)
+    VALUES (DEFAULT, %s, %s, %s, %s, %s, %s) RETURNING e_id;
     """
     result = db.execute_query(query, (e_name, c_id, o_id, e_datetime, e_location, description))
     if result:
         return result[0]['e_id'], "Event added successfully."
     return None, "Failed to add event."
+
+
 
 def issue_ticket(e_id, t_type, price, total_quantity):
     # 檢查活動是否存在
@@ -154,7 +157,7 @@ def buy_ticket(e_id, t_type, quantity, cu_id):
         INSERT INTO "ORDER" (cu_id, or_date, total_amount, payment_status, is_canceled)
         VALUES (%s, %s, %s, %s, %s) RETURNING or_id;
         """
-        total_amount = ticket['price'] * quantity
+        total_amount = Decimal(ticket['price']) * quantity
         order = db.execute_query(insert_order_query, (cu_id, datetime.now(), total_amount, 'Pending', False))
         or_id = order[0]['or_id']
 
@@ -296,5 +299,3 @@ def view_edit_user_info(cu_id, field, new_value):
 def list_history(cu_id):
     # This function can be similar to view_purchase_history
     return query_user_purchase_history(cu_id)
-
-# 更多函數可根據需要添加
