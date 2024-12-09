@@ -1,5 +1,7 @@
+SELECT setval('event_e_id_seq', 200, TRUE);
+
 -- INSERT EVENT :(
-INSERT INTO EVENT (e_name, c_id, o_id, e_datetime, e_location, description)
+INSERT INTO EVENT (e_name, c_id, o_id, e_datetime, e_location)
 -- ["Concert","Musical","Exhibition","Drama","Music","Dance","Family","Sports","Others"]
 VALUES 
 -- concert 1
