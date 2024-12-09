@@ -39,9 +39,7 @@ class Database:
 # 初始化資料庫連接
 # 請根據您的資料庫設定修改以下參數
 db = Database(
-    dbname='ticketsystem',
     user='postgres',
-    password='1234',  # 替換為您的密碼
     host='localhost',
     port=5432
 )
@@ -125,6 +123,7 @@ def query_user_info(cu_id):
     return None
 
 def query_user_purchase_history(cu_id):
+def query_user_purchase_history(cu_name):
     query = """
     SELECT O.or_id, E.e_name, T.t_type, OD.quantity, OD.subtotal, O.or_date, O.payment_status
     FROM "ORDER" O
@@ -132,9 +131,12 @@ def query_user_purchase_history(cu_id):
     JOIN TICKET T ON OD.t_id = T.t_id
     JOIN EVENT E ON T.e_id = E.e_id
     WHERE O.cu_id = %s
+    JOIN CUSTOMER C ON C.cu_id = O.cu_id
+    WHERE C.cu_name = %s
     ORDER BY O.or_date DESC;
     """
     result = db.execute_query(query, (cu_id,))
+    result = db.execute_query(query, (cu_name,))
     return result if result else []
 
 def buy_ticket(e_id, t_type, quantity, cu_id):
@@ -213,14 +215,17 @@ def cancel_ticket(or_id, cu_id):
 def view_event_details(e_id):
     query = """
     SELECT E.e_id, E.e_name, C.c_name, O.o_name, E.e_datetime, E.e_location, E.description
+    SELECT T.t_type, T.price, T.total_quantity
     FROM EVENT E
     JOIN CATEGORY C ON E.c_id = C.c_id
     JOIN ORGANIZER O ON E.o_id = O.o_id
+    JOIN TICKET T ON T.e_id = E.e_id
     WHERE E.e_id = %s;
     """
     result = db.execute_query(query, (e_id,))
     if result:
         return result[0]
+        return result
     return None
 
 def list_events():
@@ -299,3 +304,15 @@ def view_edit_user_info(cu_id, field, new_value):
 def list_history(cu_id):
     # This function can be similar to view_purchase_history
     return query_user_purchase_history(cu_id)
+
+def customer_detail(cu_name):
+    query = """
+    SELECT cu_name, email, phone_number, address, role
+    FROM CUSTOMER
+    WHERE cu_name = %s;
+    """
+    # 假設 db.execute_query 支援參數化查詢
+    result = db.execute_query(query, (cu_name,))
+
+    # 返回查詢結果
+    return result

@@ -6,6 +6,7 @@ from .LogIn import login_action
 from .SignUp import signup_action
 from .Logout import logout_action
 from .ListHistory import list_history_action
+from .CustomerDetail import get_customer_detail_action
 
 from .admin import *
 from .event import *
@@ -34,5 +35,6 @@ __all__ = [
     "payment_action",
     # From user
     "view_edit_user_info_action",
-    "view_purchase_history_action"
+    "view_purchase_history_action",
+    "get_customer_detail_action"
 ]
