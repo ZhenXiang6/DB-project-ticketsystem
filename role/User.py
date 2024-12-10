@@ -6,7 +6,9 @@ from action.event import (
     cancel_ticket_action,
     view_event_details_action,
     list_event_action,
-    search_event_action
+    search_event_action,
+    list_categories_action,
+    list_event_by_category_action
 )
 from action.payment import payment_action
 from action.user import (
@@ -32,6 +34,12 @@ class User(Role):
 
     def search_event(self, search_term):
         return search_event_action(search_term)
+
+    def list_categories(self):
+        return list_categories_action()
+
+    def list_event_by_category(self, c_id):
+        return list_event_by_category_action(c_id)
 
     def make_payment(self, or_id, payment_method, amount):
         return payment_action(or_id, payment_method, amount)

@@ -13,6 +13,8 @@ ticket_system/
 │   │   ├── ViewEventDetails.py
 │   │   ├── ListEvent.py
 │   │   ├── SearchEvent.py
+│   │   ├── ListCategories.py          <-- 新增
+│   │   ├── ListEventByCategory.py     <-- 新增
 │   ├── payment/
 │   │   ├── __init__.py
 │   │   ├── Payment.py
@@ -32,11 +34,11 @@ ticket_system/
 │   ├── Admin.py
 │   ├── Role.py
 │   ├── User.py
-├── DB_utils.py    
-├── utils.py   
-├── client.py                 
-├── server.py                  
-├── schema.sql                
-├── requirements.txt      
-|── README.md
-└── Architecture.txt                   
+├── DB_utils.py
+├── utils.py
+├── client.py
+├── server.py
+├── schema.sql
+├── requirements.txt
+├── README.md
+└── Architecture.txt
