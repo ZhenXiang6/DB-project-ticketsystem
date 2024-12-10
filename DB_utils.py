@@ -39,9 +39,9 @@ class Database:
 # 初始化資料庫連接
 # 請根據您的資料庫設定修改以下參數
 db = Database(
-    dbname='ticketsystem',
+    dbname='TicketSystem',
     user='postgres',
-    password='1234',  # 替換為您的密碼
+    password='2097timming',  # 替換為您的密碼
     host='localhost',
     port=5432,
 )
@@ -480,6 +480,7 @@ def get_sales_report(e_id):
         JOIN "ORDER" O ON OD.or_id = O.or_id
         WHERE T.e_id = %s AND O.payment_status = 'Paid'
         GROUP BY T.t_type;
+
         """
         report_data = db.execute_query(query, (e_id,))
         if report_data:

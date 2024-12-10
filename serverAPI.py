@@ -23,10 +23,10 @@ from action import (
     list_history_action,
     get_customer_detail_action,
     get_admin_organize_action,
-    get_categories_action
+    get_categories_action,
 )
 from utils import format_response, serialize_datetimes
-from DB_utils import db
+from DB_utils import db, reset_all_sequences, get_sales_report
 
 app = Flask(__name__)
 
@@ -298,6 +298,39 @@ def get_categories():
         return jsonify({"status": "success", "categories": result}), 200
     else:
         return jsonify({"status": "error", "message": "No categories found."}), 404
-    
+
+@app.route('/generate_sales_report', methods=['POST'])
+def generate_sales_report():
+    try:
+        # 獲取請求參數
+        params = request.json
+        if not params:
+            return jsonify({"status": "error", "message": "Missing request body."}), 400
+
+        event_id = params.get('event_id')
+        if event_id is None:
+            return jsonify({"status": "error", "message": "Missing event_id parameter."}), 400
+
+        # 獲取銷售報告
+        report = get_sales_report(event_id)
+        if report:
+            return jsonify({"status": "success", "data": report}), 200
+        else:
+            return jsonify({"status": "error", "message": "No sales data found for the given event_id."}), 404
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/reset_all_sequences', methods=['POST'])
+def reset_sequences():
+    try:
+        result = reset_all_sequences()
+        if result["status"] == "success":
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8800)
