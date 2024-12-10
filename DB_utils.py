@@ -122,7 +122,6 @@ def query_user_info(cu_id):
         return result[0]
     return None
 
-def query_user_purchase_history(cu_id):
 def query_user_purchase_history(cu_name):
     query = """
     SELECT O.or_id, E.e_name, T.t_type, OD.quantity, OD.subtotal, O.or_date, O.payment_status
@@ -135,7 +134,6 @@ def query_user_purchase_history(cu_name):
     WHERE C.cu_name = %s
     ORDER BY O.or_date DESC;
     """
-    result = db.execute_query(query, (cu_id,))
     result = db.execute_query(query, (cu_name,))
     return result if result else []
 
