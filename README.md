@@ -49,11 +49,11 @@
 開啟 DB-project-ticketsystem\DB_utils.py 並變更資料以連接資料庫
 
 # 請根據您的資料庫設定更改以下變數
-db = Database(  
-    dbname='ticketsystem',  #
-    user='postgres',  #替換為您的使用者名稱
+db = Database(    
+    dbname='ticketsystem',  #替換為資料庫名稱  
+    user='postgres',  #替換為您的使用者名稱  
     password='1234',  # 替換為您的密碼  
-    host='localhost',  
+    host='localhost',   
     port=5432,  
 )
 
