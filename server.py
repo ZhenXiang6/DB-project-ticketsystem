@@ -21,7 +21,9 @@ from action import (
     payment_action,
     view_edit_user_info_action,
     view_purchase_history_action,
-    list_history_action
+    list_history_action,
+    list_categories_action,
+    list_event_by_category_action
 )
 from utils import format_response, serialize_datetimes
 from DB_utils import db
@@ -282,6 +284,26 @@ def handle_client(client_socket, address):
                 response = {"status": "success", "message": message}
                 send_json_response(client_socket, response)
                 break
+
+            elif action == 'ListCategories':
+                # 列出所有Category
+                categories = list_categories_action()
+                if categories:
+                    categories = serialize_datetimes(categories)
+                    response = {"status": "success", "data": categories}
+                else:
+                    response = {"status": "error", "message": "No categories found."}
+
+            elif action == 'ListEventByCategory':
+                # 根據給定的c_id列出該Category下的Events
+                c_id = params.get('c_id')
+                events = list_event_by_category_action(c_id)
+                if events:
+                    events = serialize_datetimes(events)
+                    response = {"status": "success", "data": events}
+                else:
+                    response = {"status": "error", "message": "No events found for the selected category."}
+
 
             else:
                 response = {"status": "error", "message": "Invalid action."}

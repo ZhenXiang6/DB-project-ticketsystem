@@ -41,7 +41,9 @@ class Database:
 db = Database(
     user='postgres',
     host='localhost',
-    port=5432
+    port=5432,
+    dbname='ticketsystem',
+    password='1234'
 )
 
 # 資料庫工具函數
@@ -314,3 +316,20 @@ def customer_detail(cu_name):
 
     # 返回查詢結果
     return result
+
+def list_categories():
+    query = "SELECT c_id, c_name FROM CATEGORY ORDER BY c_id;"
+    result = db.execute_query(query)
+    return result if result else []
+
+def list_event_by_category(c_id):
+    query = """
+    SELECT E.e_id, E.e_name, C.c_name, O.o_name, E.e_datetime, E.e_location
+    FROM EVENT E
+    JOIN CATEGORY C ON E.c_id = C.c_id
+    JOIN ORGANIZER O ON E.o_id = O.o_id
+    WHERE E.c_id = %s
+    ORDER BY E.e_datetime;
+    """
+    result = db.execute_query(query, (c_id,))
+    return result if result else []

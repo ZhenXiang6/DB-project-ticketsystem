@@ -159,6 +159,7 @@ def admin_menu(sock):
             else:
                 print(response['message'])
 
+
         elif choice == '5':
             response = send_request(sock, 'LogOut')
             print(response.get('message', ''))
@@ -206,13 +207,38 @@ def regular_user_menu(sock):
                 print(response['message'])
 
         elif choice == '4':
-            response = send_request(sock, 'ListEvent')
+            # Step 1: 請求伺服器傳回所有Category
+            response = send_request(sock, 'ListCategories')
             if response['status'] == 'success':
-                events = response['data']
-                for event in events:
-                    print(f"ID: {event['e_id']}, Name: {event['e_name']}, Category: {event['c_name']}, Organizer: {event['o_name']}, Date & Time: {event['e_datetime']}, Location: {event['e_location']}")
+                categories = response['data']
+                if not categories:
+                    print("No categories found.")
+                else:
+                    print("Please select a category:")
+                    for idx, cat in enumerate(categories, start=1):
+                        print(f"[{idx}] {cat['c_name']}")
+                    cat_choice = input("---> ").strip()
+                    if not cat_choice.isdigit():
+                        print("Invalid input.")
+                        continue
+                    cat_idx = int(cat_choice)
+                    if cat_idx < 1 or cat_idx > len(categories):
+                        print("Invalid category selection.")
+                        continue
+
+                    selected_c_id = categories[cat_idx-1]['c_id']
+
+                    # Step 2: 根據使用者選擇的 c_id 請求該Category下的Events
+                    response = send_request(sock, 'ListEventByCategory', {'c_id': selected_c_id})
+                    if response['status'] == 'success':
+                        events = response['data']
+                        for event in events:
+                            print(f"ID: {event['e_id']}, Name: {event['e_name']}, Category: {event['c_name']}, Organizer: {event['o_name']}, Date & Time: {event['e_datetime']}, Location: {event['e_location']}")
+                    else:
+                        print(response['message'])
             else:
                 print(response['message'])
+
 
         elif choice == '5':
             search_term = input("Enter search term (Event Name or Organizer): ").strip()

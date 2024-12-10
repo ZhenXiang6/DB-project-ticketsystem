@@ -37,4 +37,6 @@ __all__ = [
     "view_edit_user_info_action",
     "view_purchase_history_action",
     "get_customer_detail_action"
+    "list_categories_action",                 
+    "list_event_by_category_action",
 ]
