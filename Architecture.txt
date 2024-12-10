@@ -13,8 +13,8 @@ ticket_system/
 │   │   ├── ViewEventDetails.py
 │   │   ├── ListEvent.py
 │   │   ├── SearchEvent.py
-│   │   ├── ListCategories.py          <-- 新增
-│   │   ├── ListEventByCategory.py     <-- 新增
+│   │   ├── ListCategories.py        
+│   │   ├── ListEventByCategory.py    
 │   ├── payment/
 │   │   ├── __init__.py
 │   │   ├── Payment.py
