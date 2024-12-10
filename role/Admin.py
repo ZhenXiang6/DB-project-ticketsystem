@@ -12,8 +12,8 @@ class Admin(Role):
     def __init__(self, cu_id, role):
         super().__init__(cu_id, role)
 
-    def add_event(self, e_name, c_id, o_id, e_datetime, e_location, description):
-        return add_event_action(e_name, c_id, o_id, e_datetime, e_location, description)
+    def add_event(self, e_name, c_id, o_name, e_datetime, e_location, description):
+        return add_event_action(e_name, c_id, o_name, e_datetime, e_location, description)
 
     def issue_tickets(self, e_id, t_type, price, total_quantity):
         return issue_tickets_action(e_id, t_type, price, total_quantity)

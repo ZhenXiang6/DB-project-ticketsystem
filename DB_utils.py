@@ -39,7 +39,9 @@ class Database:
 # 初始化資料庫連接
 # 請根據您的資料庫設定修改以下參數
 db = Database(
+    dbname='DB 113-project',
     user='postgres',
+    password='2097timming',  # 替換為您的密碼
     host='localhost',
     port=5432
 )
@@ -82,15 +84,50 @@ def email_exists(email):
     result = db.execute_query(query, (email,))
     return bool(result)
 
-def add_event(e_name, c_id, o_id, e_datetime, e_location, description):
+def add_event(e_name, c_name, o_name, e_datetime, e_location, description):
+    # 使用 o_name 查找對應的 o_id
+    print(o_name)
+    query = """
+    SELECT o_id FROM Organizer WHERE o_name = %s;
+    """
+    result = db.execute_query(query, (o_name,))
+    
+    if not result:
+        return None, "Organizer not found."
+    
+    o_id = result[0]['o_id']  # 假設 Organizer 表格中有 o_id 和 o_name 欄位
+    
+    query = """
+    SELECT c_id FROM category WHERE c_name = %s;
+    """
+    result = db.execute_query(query, (c_name,))
+    
+    if not result:
+        return None, "Category not found."
+    
+    c_id = result[0]['c_id']  # 假設 Organizer 表格中有 o_id 和 o_name 欄位
+    
+    # 插入活動資料
     query = """
     INSERT INTO EVENT (e_id, e_name, c_id, o_id, e_datetime, e_location, description)
     VALUES (DEFAULT, %s, %s, %s, %s, %s, %s) RETURNING e_id;
     """
     result = db.execute_query(query, (e_name, c_id, o_id, e_datetime, e_location, description))
+    
     if result:
         return result[0]['e_id'], "Event added successfully."
     return None, "Failed to add event."
+
+def get_categories():
+    query = """
+    SELECT c_name FROM category;
+    """
+    result = db.execute_query(query)  # 假設 db.execute_query 是執行 SQL 查詢的函數
+
+    if result:
+        return result, ""  # 返回所有分類名稱
+    else:
+        return [], "No categories found."  # 如果查無資料，返回空列表和訊息
 
 
 
@@ -122,7 +159,6 @@ def query_user_info(cu_id):
         return result[0]
     return None
 
-def query_user_purchase_history(cu_id):
 def query_user_purchase_history(cu_name):
     query = """
     SELECT O.or_id, E.e_name, T.t_type, OD.quantity, OD.subtotal, O.or_date, O.payment_status
@@ -130,18 +166,17 @@ def query_user_purchase_history(cu_name):
     JOIN ORDER_DETAIL OD ON O.or_id = OD.or_id
     JOIN TICKET T ON OD.t_id = T.t_id
     JOIN EVENT E ON T.e_id = E.e_id
-    WHERE O.cu_id = %s
     JOIN CUSTOMER C ON C.cu_id = O.cu_id
     WHERE C.cu_name = %s
     ORDER BY O.or_date DESC;
     """
-    result = db.execute_query(query, (cu_id,))
     result = db.execute_query(query, (cu_name,))
     return result if result else []
 
 def buy_ticket(e_id, t_type, quantity, cu_id):
     try:
         # 檢查票券是否存在且有足夠的餘量
+        print(e_id, t_type)
         query = "SELECT * FROM TICKET WHERE e_id = %s AND t_type = %s;"
         tickets = db.execute_query(query, (e_id, t_type))
         if not tickets:
@@ -176,35 +211,50 @@ def buy_ticket(e_id, t_type, quantity, cu_id):
         print(f"Database error during ticket purchase: {e}")
         return False, "Failed to purchase ticket due to a server error."
 
-def cancel_ticket(or_id, cu_id):
-    # 更新訂單為已取消，並恢復票券數量
+def cancel_ticket(or_id, cu_name):
     try:
         db.cursor.execute("BEGIN;")
+             
+        # 檢查客戶是否存在
+        query = "SELECT cu_id FROM customer WHERE cu_name = %s;"
+        result = db.execute_query(query, (cu_name,))
+        if not result:
+            db.cursor.execute("ROLLBACK;")
+            return False, "Customer does not exist."
+        cu_id = result[0]['cu_id']
+        
         # 檢查訂單是否存在且可取消
         query = """
-        SELECT payment_status, is_canceled FROM "ORDER" WHERE or_id = %s AND cu_id = %s;
+        SELECT payment_status, is_canceled 
+        FROM "ORDER" 
+        WHERE or_id = %s AND cu_id = %s;
         """
         result = db.execute_query(query, (or_id, cu_id))
         if not result:
             db.cursor.execute("ROLLBACK;")
             return False, "Order does not exist."
+        
         order = result[0]
         if order['is_canceled'] or order['payment_status'] != 'Pending':
             db.cursor.execute("ROLLBACK;")
             return False, "Cannot cancel this order."
+
         # 更新訂單狀態
         query = """
-        UPDATE "ORDER" SET is_canceled = TRUE, payment_status = 'Canceled' WHERE or_id = %s;
+        UPDATE "ORDER" 
+        SET is_canceled = TRUE, payment_status = 'Canceled' 
+        WHERE or_id = %s;
         """
         db.execute_query(query, (or_id,))
+
         # 恢復票券數量
-        query = """
-        SELECT t_id, quantity FROM ORDER_DETAIL WHERE or_id = %s;
-        """
+        query = "SELECT t_id, quantity FROM ORDER_DETAIL WHERE or_id = %s;"
         details = db.execute_query(query, (or_id,))
         for detail in details:
             query = "UPDATE TICKET SET remain_quantity = remain_quantity + %s WHERE t_id = %s;"
             db.execute_query(query, (detail['quantity'], detail['t_id']))
+
+        # 提交事務
         db.cursor.execute("COMMIT;")
         return True, "Order canceled successfully."
     except Exception as e:
@@ -214,8 +264,7 @@ def cancel_ticket(or_id, cu_id):
 
 def view_event_details(e_id):
     query = """
-    SELECT E.e_id, E.e_name, C.c_name, O.o_name, E.e_datetime, E.e_location, E.description
-    SELECT T.t_type, T.price, T.total_quantity
+    SELECT T.t_type, T.price, T.total_quantity, T.remain_quantity
     FROM EVENT E
     JOIN CATEGORY C ON E.c_id = C.c_id
     JOIN ORGANIZER O ON E.o_id = O.o_id
@@ -224,7 +273,6 @@ def view_event_details(e_id):
     """
     result = db.execute_query(query, (e_id,))
     if result:
-        return result[0]
         return result
     return None
 
@@ -316,3 +364,48 @@ def customer_detail(cu_name):
 
     # 返回查詢結果
     return result
+
+def get_admin_organization(cu_name):
+    if not cu_name:  # Check if username is provided
+        return False, {"error": "Username is required"}  # Return False and error message
+    
+    try:
+        # Step 1: Check if the user is an admin
+        role_query = """
+        SELECT C.role
+        FROM CUSTOMER AS C
+        WHERE C.cu_name = %s;
+        """
+        result = db.execute_query(role_query, (cu_name,))
+        
+        # Check if the user exists
+        if not result:
+            return False, {"error": "User not found"}  # User not found
+        
+        # Check if the user is an admin
+        if result[0]['role'] != 'Admin':
+            return False, {"error": "User is not an admin"}  # User is not an admin
+
+        # Step 2: If the user is an admin, fetch the organizer info
+        organizer_query = """
+        SELECT o_id, o_name
+        FROM organizer AS O
+        JOIN Admin_Organize AS AO ON AO.organize_id = O.o_id
+        WHERE AO.username = %s;
+        """
+        organizer_result = db.execute_query(organizer_query, (cu_name,))
+        
+        # Check if any organizers are found
+        if not organizer_result:
+            return False, {"error": "No organizers found for this admin"}  # No organizers found
+
+        # Return success and the organizer result
+        return True, organizer_result
+    except Exception as e:
+        # Return general error on failure
+        return False, {"error": f"An error occurred: {str(e)}"}  # Internal Server Error
+
+
+
+
+

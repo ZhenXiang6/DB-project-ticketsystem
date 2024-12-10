@@ -21,7 +21,9 @@ from action import (
     view_edit_user_info_action,
     view_purchase_history_action,
     list_history_action,
-    get_customer_detail_action
+    get_customer_detail_action,
+    get_admin_organize_action,
+    get_categories_action
 )
 from utils import format_response, serialize_datetimes
 from DB_utils import db
@@ -90,15 +92,15 @@ def logout():
 @app.route('/addevent', methods=['POST'])
 def add_event():
     data = request.get_json()
-    user = request.args.get('user')  # 假設有辦法從 request 中取得使用者
-    if isinstance(user, Admin):
+    role = request.args.get('role')  # 假設有辦法從 request 中取得使用者
+    if role == "Admin":
         e_name = data.get('e_name')
-        c_id = data.get('c_id')
-        o_id = data.get('o_id')
+        c_name = data.get('c_name')
+        o_name = data.get('o_name')
         e_datetime = data.get('e_datetime')
         e_location = data.get('e_location')
         description = data.get('description')
-        event_id, message = user.add_event(e_name, c_id, o_id, e_datetime, e_location, description)
+        event_id, message = add_event_action(e_name, c_name, o_name, e_datetime, e_location, description)
         if event_id:
             return send_json_response({"status": "success", "message": message, "e_id": event_id})
         else:
@@ -131,16 +133,27 @@ def buy_ticket():
 @app.route('/cancelticket', methods=['POST'])
 def cancel_ticket():
     data = request.get_json()
-    user = request.args.get('user')  # 假設有辦法從 request 中取得使用者
-    if isinstance(user, User):
-        or_id = data.get('or_id')
-        success, message = cancel_ticket_action(or_id, user.cu_id)
-        if success:
-            return send_json_response({"status": "success", "message": message})
-        else:
-            return send_json_response({"status": "error", "message": message}), 400
+    user_name = request.args.get('user_name')
+    
+    if not data:
+        return jsonify({"status": "error", "message": "Invalid request. No data provided."}), 400
+    
+    or_id = data.get('or_id')
+
+    user = online_users.get(user_name)
+
+    if not isinstance(user, User):
+        return jsonify({"status": "error", "message": "Please log in as a user."}), 401
+
+    
+    success, message = cancel_ticket_action(or_id, user_name)
+
+    if success:
+        response = {"status": "success", "message": message}
+        return jsonify(response), 200
     else:
-        return send_json_response({"status": "error", "message": "Please log in as a user."}), 403
+        response = {"status": "error", "message": message}
+        return jsonify(response), 400
 
 @app.route('/view_event_details', methods=['GET'])
 def view_event_details():
@@ -204,7 +217,7 @@ def get_user_purchase_history():
     
     # Query the purchase history
     purchase_history = query_user_purchase_history_action(cu_name)
-    print(purchase_history)
+    
     # Return the response
     if purchase_history:
         return jsonify({"cu_name": cu_name, "purchase_history": purchase_history}), 200
@@ -236,5 +249,53 @@ def payment():
 
     return jsonify(response)
 
+# In serverAPI.py
+@app.route('/get_admin_organize', methods=['GET'])
+def get_admin_organize():
+    username = request.args.get('cu_name')  # Get the username from the request
+    
+    if not username:  # Step 1: Validate username
+        response = {"status": "error", "message": "Username is required"}
+        return jsonify(response), 400
+
+    # Step 2: Get the admin's organization data
+    success, result = get_admin_organize_action(username)
+
+    if not success:  # If failure occurred, return the error
+        response = {"status": "error", "message": result["error"]}
+        return jsonify(response), 400  # Use 400 for errors like invalid admin
+    
+    # Step 3: Return the successful result
+    response = {
+        "status": "success",
+        "o_id": result[0]["o_id"],
+        "o_name": result[0]["o_name"]
+    }
+    return jsonify(response)
+
+@app.route('/issue_tickets', methods=['POST'])
+def issue_tickets():
+    params = request.json
+    e_id = params.get('e_id')
+    t_type = params.get('t_type')
+    price = params.get('price')
+    total_quantity = params.get('total_quantity')
+
+    success, message = issue_tickets_action(e_id, t_type, price, total_quantity)
+
+    if success:
+        return jsonify({"status": "success", "message": message}), 200
+    else:
+        return jsonify({"status": "error", "message": message}), 400
+    
+@app.route('/get_categories', methods=['GET'])
+def get_categories():
+    result = get_categories_action()  # 假設 db.execute_query 是執行 SQL 查詢的函數
+
+    if result:
+        return jsonify({"status": "success", "categories": result}), 200
+    else:
+        return jsonify({"status": "error", "message": "No categories found."}), 404
+    
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8800)

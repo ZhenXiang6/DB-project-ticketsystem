@@ -7,6 +7,8 @@ from .SignUp import signup_action
 from .Logout import logout_action
 from .ListHistory import list_history_action
 from .CustomerDetail import get_customer_detail_action
+from .GetAdminOrganize import get_admin_organize_action
+from .GetCat import get_categories_action
 
 from .admin import *
 from .event import *
@@ -25,6 +27,8 @@ __all__ = [
     "issue_tickets_action",
     "query_user_info_action",
     "query_user_purchase_history_action",
+    "get_admin_organize_action",
+    "get_categories_action"
     # From event
     "buy_ticket_action",
     "cancel_ticket_action",
