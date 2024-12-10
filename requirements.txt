@@ -1,0 +1,8 @@
+# requirements.txt
+
+sqlalchemy
+psycopg2-binary
+tabulate
+pytest
+
+
