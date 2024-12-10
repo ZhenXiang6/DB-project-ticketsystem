@@ -102,16 +102,17 @@ db = Database(
    安裝完依賴後，可以使用以下指令啟動專案：
    ```bash
    npm run dev
+   ```
 
-啟動後，您可以在瀏覽器中訪問 http://localhost 來查看應用。
+   啟動後，您可以在瀏覽器中訪問 [http://localhost:3000](http://localhost:3000) 來查看應用。
 
-資料庫設定
+## 資料庫設定
+
 如果在註冊資訊時遇到問題，請確認以下幾個步驟來確保資料庫中的序列 (ID) 序列同步：
 
 使用以下 SQL 查詢來重新設置各個表格的 ID 序列，確保它們從正確的最大值開始遞增：
 
-sql
-複製程式碼
+```sql
 -- 更新 CATEGORY 表格的 ID 序列
 SELECT setval('category_c_id_seq', COALESCE((SELECT MAX(c_id) FROM CATEGORY), 0) + 1, false);
 
@@ -135,18 +136,9 @@ SELECT setval('payment_p_id_seq', COALESCE((SELECT MAX(p_id) FROM PAYMENT), 0) +
 
 -- 更新 VENUE 表格的 ID 序列
 SELECT setval('venue_v_id_seq', COALESCE((SELECT MAX(v_id) FROM VENUE), 0) + 1, false);
-執行上述查詢後，您應該可以解決註冊資料時的序列錯誤問題，並使各個表格的 ID 序列保持同步。
+```
 
-常見問題
-無法啟動專案：
+這些 SQL 查詢會幫助您重設資料庫中的 ID 序列，使其正確地對應到資料表中的最大 ID。
 
-確認您是否已安裝 Node.js 並且版本符合要求。
-確認您已經執行 npm install 安裝依賴。
-資料庫操作出錯：
-
-請檢查資料庫表格是否存在問題，並使用提供的 SQL 查詢更新序列。
-其他錯誤：
-
-如果出現其他錯誤，請查看瀏覽器的開發者工具中的錯誤訊息，並根據錯誤提示進行排查。
 
 
