@@ -1,7 +1,0 @@
-event.sql
-*.csv
-*.xlsx
-generate_test_data.ipynb
-Architecture.txt
-insert_test_data.sql
-__pycache__/
