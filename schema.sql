@@ -1,18 +1,3 @@
-DO
-$$
-DECLARE
-    table_name TEXT;
-BEGIN
-    -- 迭代所有資料表
-    FOR table_name IN
-        SELECT tablename FROM pg_tables WHERE schemaname = 'public'
-    LOOP
-        EXECUTE format('DROP TABLE IF EXISTS %I CASCADE;', table_name);
-    END LOOP;
-END
-$$;
-
-
 -- schema.sql
 
 -- 表1: CATEGORY
@@ -113,16 +98,3 @@ CREATE TABLE IF NOT EXISTS EVENT_VENUE (
     FOREIGN KEY (e_id) REFERENCES EVENT(e_id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (v_id) REFERENCES VENUE(v_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
-
-
--------插入資料後確保id不會跑掉-------
-SELECT setval('category_c_id_seq', COALESCE((SELECT MAX(c_id) FROM CATEGORY),0)+1, false);
-SELECT setval('organizer_o_id_seq', COALESCE((SELECT MAX(o_id) FROM ORGANIZER),0)+1, false);
-SELECT setval('event_e_id_seq', COALESCE((SELECT MAX(e_id) FROM EVENT),0)+1, false);
-SELECT setval('ticket_t_id_seq', COALESCE((SELECT MAX(t_id) FROM TICKET),0)+1, false);
-SELECT setval('customer_cu_id_seq', COALESCE((SELECT MAX(cu_id) FROM CUSTOMER),0)+1, false);
-SELECT setval('"ORDER_or_id_seq"', COALESCE((SELECT MAX(or_id) FROM "ORDER"),0)+1, false);
-SELECT setval('payment_p_id_seq', COALESCE((SELECT MAX(p_id) FROM PAYMENT),0)+1, false);
-SELECT setval('venue_v_id_seq', COALESCE((SELECT MAX(v_id) FROM VENUE),0)+1, false);
-
-
