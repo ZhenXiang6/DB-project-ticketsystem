@@ -139,6 +139,6 @@ SELECT setval('venue_v_id_seq', COALESCE((SELECT MAX(v_id) FROM VENUE), 0) + 1, 
 ```
 
 這些 SQL 查詢會幫助您重設資料庫中的 ID 序列，使其正確地對應到資料表中的最大 ID。
-
+以下是我們 Demo 使用的影片 https://www.youtube.com/watch?v=KZgVDIKVYoI&ab_channel=013%E9%99%B3%E5%A5%95%E5%BB%B7
 
 
