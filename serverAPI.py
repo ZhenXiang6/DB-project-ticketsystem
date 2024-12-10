@@ -54,7 +54,9 @@ def signup():
     username = data.get('username')
     password = data.get('password')
     email = data.get('email')
-    success, message = signup_action(username, password, email)
+    address = data.get('address')
+    phone = data.get('phone')
+    success, message = signup_action(username, password, email, address, phone)
     if success:
         return send_json_response({"status": "success", "message": message})
     else:

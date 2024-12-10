@@ -23,10 +23,11 @@ from action import (
     view_purchase_history_action,
     list_history_action,
     list_categories_action,
-    list_event_by_category_action
+    list_event_by_category_action,
+    generate_sales_report_action
 )
 from utils import format_response, serialize_datetimes
-from DB_utils import db
+from DB_utils import db, reset_all_sequences, get_sales_report
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -171,6 +172,18 @@ def handle_client(client_socket, address):
                         response = {"status": "error", "message": "Purchase history not found."}
                 else:
                     response = {"status": "error", "message": "Unauthorized action. Admins only."}
+
+            elif action == 'GenerateSalesReport':
+                e_id = params.get('event_id')
+                if e_id is None:
+                    response = {"status": "error", "message": "Missing event_id parameter."}
+                else:
+                    # 確保只傳遞一個參數
+                    report = get_sales_report(e_id)
+                    if report:
+                        response = {"status": "success", "data": report}
+                    else:
+                        response = {"status": "error", "message": "No sales data found for the given event_id."}
 
             elif action == 'BuyTicket':
                 if isinstance(user, User):
@@ -322,6 +335,7 @@ def handle_client(client_socket, address):
     client_socket.close()
 
 def start_server():
+    reset_all_sequences()
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((HOST, PORT))
     server.listen()
