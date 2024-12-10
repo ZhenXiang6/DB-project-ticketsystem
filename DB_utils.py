@@ -44,8 +44,6 @@ db = Database(
     password='2097timming',  # 替換為您的密碼
     host='localhost',
     port=5432,
-    dbname='ticketsystem',
-    password='1234'
 )
 
 # 資料庫工具函數
