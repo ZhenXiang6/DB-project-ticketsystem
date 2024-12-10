@@ -39,7 +39,7 @@ class Database:
 # 初始化資料庫連接
 # 請根據您的資料庫設定修改以下參數
 db = Database(
-    dbname='DB 113-project',
+    dbname='TicketSystem',
     user='postgres',
     password='2097timming',  # 替換為您的密碼
     host='localhost',
@@ -57,18 +57,24 @@ def authenticate_user(username, password):
         return result[0]['cu_id'], result[0]['role']
     return None, None
 
-def register_user(username, password, email):
+def register_user(username, password, email, address, phone):
     if username_exists(username):
         return None, "Username already exists."
     if email_exists(email):
         return None, "Email already exists."
+    
+    # 更新 INSERT 查詢，去掉 cu_id 讓資料庫自動處理
     query = """
-    INSERT INTO CUSTOMER (cu_name, pwd, email) VALUES (%s, %s, %s) RETURNING cu_id;
+    INSERT INTO CUSTOMER (cu_id, cu_name, pwd, email, address, phone_number) 
+    VALUES (nextval('customer_cu_id_seq'), %s, %s, %s, %s, %s)
+    RETURNING cu_id;
     """
-    result = db.execute_query(query, (username, password, email))
+    result = db.execute_query(query, (username, password, email, address, phone))
     if result:
         return result[0]['cu_id'], "User registered successfully."
     return None, "Registration failed."
+
+
 
 def username_exists(username):
     query = """
