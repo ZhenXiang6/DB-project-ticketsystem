@@ -32,7 +32,7 @@
 1. **克隆倉庫**（如果適用）
 
 - git clone https://github.com/ZhenXiang6/DB-project-ticketsystem
-- cd ticketing-system
+- cd ticket-system
 
 2. **安裝所需的 Python 套件**
 
@@ -46,21 +46,21 @@
 
 1. **資料庫連接字串**
 
-- 更新 models/database.py 中的 DATABASE_URL 以符合您的 PostgreSQL 資料庫憑證。
-- # models/database.py
+開啟 DB-project-ticketsystem\DB_utils.py 並變更資料以連接資料庫
 
 # 請根據您的資料庫設定更改以下變數
-- your_username = "postgres"
-- your_password = "1234"
-
-- DATABASE_URL = "postgresql://" + your_username + ":" + your_password + "@localhost:5432/ticketsystem"
-
+db = Database(  
+    dbname='ticketsystem',  #
+    user='postgres',  #替換為您的使用者名稱
+    password='1234',  # 替換為您的密碼  
+    host='localhost',  
+    port=5432,  
+)
 
 ## 運行應用程式
 
 1. **啟動伺服器**
 
-- cd ticketing-system
 - python server.py
 
 您應該會看到類似以下的輸出：
@@ -68,7 +68,6 @@
 
 2. **啟動客戶端**
 
-- cd ticketing-system
 - python client.py
     
 您應該會看到類似以下的輸出：
