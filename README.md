@@ -82,4 +82,71 @@ db = Database(
    --->
 
 
+# Ticket System 前端說明
+
+這個專案是基於 **React** 和 **TypeScript** 實作的票務系統前端，使用 Node.js 作為開發環境。
+
+## 環境設定
+
+1. **安裝 Node.js**：
+   請確保您的開發環境已安裝 Node.js。您可以從 [Node.js 官方網站](https://nodejs.org/) 下載並安裝最新版。
+
+2. **專案安裝步驟**：
+   - 下載並解壓此專案後，進入 `ticket_system` 資料夾。
+   - 使用 `npm` 安裝所需的依賴：
+     ```bash
+     npm install
+     ```
+
+3. **啟動專案**：
+   安裝完依賴後，可以使用以下指令啟動專案：
+   ```bash
+   npm run dev
+
+啟動後，您可以在瀏覽器中訪問 http://localhost 來查看應用。
+
+資料庫設定
+如果在註冊資訊時遇到問題，請確認以下幾個步驟來確保資料庫中的序列 (ID) 序列同步：
+
+使用以下 SQL 查詢來重新設置各個表格的 ID 序列，確保它們從正確的最大值開始遞增：
+
+sql
+複製程式碼
+-- 更新 CATEGORY 表格的 ID 序列
+SELECT setval('category_c_id_seq', COALESCE((SELECT MAX(c_id) FROM CATEGORY), 0) + 1, false);
+
+-- 更新 ORGANIZER 表格的 ID 序列
+SELECT setval('organizer_o_id_seq', COALESCE((SELECT MAX(o_id) FROM ORGANIZER), 0) + 1, false);
+
+-- 更新 EVENT 表格的 ID 序列
+SELECT setval('event_e_id_seq', COALESCE((SELECT MAX(e_id) FROM EVENT), 0) + 1, false);
+
+-- 更新 TICKET 表格的 ID 序列
+SELECT setval('ticket_t_id_seq', COALESCE((SELECT MAX(t_id) FROM TICKET), 0) + 1, false);
+
+-- 更新 CUSTOMER 表格的 ID 序列
+SELECT setval('customer_cu_id_seq', COALESCE((SELECT MAX(cu_id) FROM CUSTOMER), 0) + 1, false);
+
+-- 更新 ORDER 表格的 ID 序列
+SELECT setval('"ORDER_or_id_seq"', COALESCE((SELECT MAX(or_id) FROM "ORDER"), 0) + 1, false);
+
+-- 更新 PAYMENT 表格的 ID 序列
+SELECT setval('payment_p_id_seq', COALESCE((SELECT MAX(p_id) FROM PAYMENT), 0) + 1, false);
+
+-- 更新 VENUE 表格的 ID 序列
+SELECT setval('venue_v_id_seq', COALESCE((SELECT MAX(v_id) FROM VENUE), 0) + 1, false);
+執行上述查詢後，您應該可以解決註冊資料時的序列錯誤問題，並使各個表格的 ID 序列保持同步。
+
+常見問題
+無法啟動專案：
+
+確認您是否已安裝 Node.js 並且版本符合要求。
+確認您已經執行 npm install 安裝依賴。
+資料庫操作出錯：
+
+請檢查資料庫表格是否存在問題，並使用提供的 SQL 查詢更新序列。
+其他錯誤：
+
+如果出現其他錯誤，請查看瀏覽器的開發者工具中的錯誤訊息，並根據錯誤提示進行排查。
+
 
