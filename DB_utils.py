@@ -39,9 +39,9 @@ class Database:
 # 初始化資料庫連接
 # 請根據您的資料庫設定修改以下參數
 db = Database(
-    dbname='TicketSystem',
+    dbname='ticketsystem',
     user='postgres',
-    password='2097timming',  # 替換為您的密碼
+    password='1234',  # 替換為您的密碼
     host='localhost',
     port=5432,
 )
@@ -181,14 +181,16 @@ def query_user_purchase_history(cu_name):
 
 def buy_ticket(e_id, t_type, quantity, cu_id):
     try:
-        # 檢查票券是否存在且有足夠的餘量
-        print(e_id, t_type)
-        query = "SELECT * FROM TICKET WHERE e_id = %s AND t_type = %s;"
+        db.cursor.execute("BEGIN;")
+        # 檢查票券是否存在且有足夠的餘量，並鎖定該行
+        query = "SELECT * FROM TICKET WHERE e_id = %s AND t_type = %s FOR UPDATE;"
         tickets = db.execute_query(query, (e_id, t_type))
         if not tickets:
+            db.cursor.execute("ROLLBACK;")
             return False, "Ticket type does not exist for this event."
         ticket = tickets[0]
         if ticket['remain_quantity'] < quantity:
+            db.cursor.execute("ROLLBACK;")
             return False, "Not enough tickets available."
 
         # 更新剩餘票券數量
@@ -211,11 +213,14 @@ def buy_ticket(e_id, t_type, quantity, cu_id):
         """
         db.execute_query(insert_order_detail_query, (or_id, ticket['t_id'], quantity, total_amount))
 
+        db.cursor.execute("COMMIT;")
         return True, f"Successfully purchased {quantity} ticket(s) for event {e_id}."
 
     except Exception as e:
+        db.cursor.execute("ROLLBACK;")
         print(f"Database error during ticket purchase: {e}")
         return False, "Failed to purchase ticket due to a server error."
+
 
 def cancel_ticket(or_id, cu_name):
     try:
@@ -411,10 +416,6 @@ def get_admin_organization(cu_name):
         # Return general error on failure
         return False, {"error": f"An error occurred: {str(e)}"}  # Internal Server Error
 
-
-
-
-
 def list_categories():
     query = "SELECT c_id, c_name FROM CATEGORY ORDER BY c_id;"
     result = db.execute_query(query)
@@ -431,3 +432,66 @@ def list_event_by_category(c_id):
     """
     result = db.execute_query(query, (c_id,))
     return result if result else []
+
+
+def reset_all_sequences():
+    # 定義表名、序列名稱與對應的 ID 欄位
+    tables_sequences = {
+        'category': ('category_c_id_seq', 'c_id'),
+        'organizer': ('organizer_o_id_seq', 'o_id'),
+        'event': ('event_e_id_seq', 'e_id'),
+        'ticket': ('ticket_t_id_seq', 't_id'),
+        'customer': ('customer_cu_id_seq', 'cu_id'),
+        'ORDER': ('"ORDER_or_id_seq"', 'or_id'),
+        'payment': ('payment_p_id_seq', 'p_id'),
+        'venue': ('venue_v_id_seq', 'v_id')
+    }
+
+    for table, (sequence, id_col) in tables_sequences.items():
+            # 使用 Literal 來傳遞序列名稱作為字串
+            query = sql.SQL("""
+                SELECT setval(
+                    {sequence},
+                    COALESCE((SELECT MAX({id_col}) FROM {table}), 0) + 1,
+                    false
+                );
+            """).format(
+                sequence=sql.Literal(sequence),
+                table=sql.Identifier(table),
+                id_col=sql.Identifier(id_col)
+            )
+            db.execute_query(query)
+
+def get_sales_report(e_id):
+    """
+    根據 event_id 生成銷售報告，包含每個票種的售出數量及收入，和總收入。
+
+    :param e_id: 活動的唯一識別碼
+    :return: 銷售報告數據字典或空字典
+    """
+    try:
+        query = """
+        SELECT 
+            T.t_type,
+            SUM(OD.quantity) AS tickets_sold,
+            SUM(OD.subtotal) AS revenue
+        FROM TICKET T
+        JOIN ORDER_DETAIL OD ON T.t_id = OD.t_id
+        JOIN "ORDER" O ON OD.or_id = O.or_id
+        WHERE T.e_id = %s AND O.payment_status = 'Paid'
+        GROUP BY T.t_type;
+        """
+        report_data = db.execute_query(query, (e_id,))
+        if report_data:
+            # 計算總收入
+            total_revenue = sum(item['revenue'] for item in report_data)
+            return {
+                "event_id": e_id,
+                "ticket_details": report_data,
+                "total_revenue": total_revenue
+            }
+        else:
+            return {}
+    except Exception as e:
+        print(f"Error generating sales report: {e}")
+        return {}

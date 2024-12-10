@@ -26,7 +26,10 @@ def recv_json_response(sock):
         if ch == b'\n':
             break
         length_line += ch
-    length = int(length_line.decode('utf-8'))
+    try:
+        length = int(length_line.decode('utf-8'))
+    except ValueError:
+        return None
 
     # 根據長度讀取JSON
     data = b''
@@ -35,7 +38,10 @@ def recv_json_response(sock):
         if not chunk:
             return None
         data += chunk
-    return json.loads(data.decode('utf-8'))
+    try:
+        return json.loads(data.decode('utf-8'))
+    except json.JSONDecodeError:
+        return None
 
 def send_request(sock, action, params=None):
     send_json_request(sock, action, params)
@@ -106,16 +112,23 @@ def admin_menu(sock):
         print("[2] Issue Tickets")
         print("[3] Query User Info")
         print("[4] Query User Purchase History")
-        print("[5] Log Out")
+        print("[5] Generate Sales Report")  # 新增
+        print("[6] Log Out")
         choice = input("---> ").strip()
 
         if choice == '1':
             e_name = input("Enter Event Name: ").strip()
-            c_id = int(input("Enter Category ID: ").strip())
-            o_id = int(input("Enter Organizer ID: ").strip())
+            c_id = input("Enter Category ID: ").strip()
+            o_id = input("Enter Organizer ID: ").strip()
             e_datetime = input("Enter Event Date and Time (YYYY-MM-DD HH:MM:SS): ").strip()
             e_location = input("Enter Event Location: ").strip()
             description = input("Enter Event Description: ").strip()
+            try:
+                c_id = int(c_id)
+                o_id = int(o_id)
+            except ValueError:
+                print("Category ID and Organizer ID must be integers.")
+                continue
             response = send_request(sock, 'AddEvent', {
                 'e_name': e_name,
                 'c_id': c_id,
@@ -127,10 +140,17 @@ def admin_menu(sock):
             print(response.get('message', ''))
 
         elif choice == '2':
-            e_id = int(input("Enter Event ID: ").strip())
+            e_id = input("Enter Event ID: ").strip()
             t_type = input("Enter Ticket Type: ").strip()
-            price = float(input("Enter Ticket Price: ").strip())
-            total_quantity = int(input("Enter Total Quantity: ").strip())
+            price = input("Enter Ticket Price: ").strip()
+            total_quantity = input("Enter Total Quantity: ").strip()
+            try:
+                e_id = int(e_id)
+                price = float(price)
+                total_quantity = int(total_quantity)
+            except ValueError:
+                print("Event ID and Total Quantity must be integers, and Price must be a number.")
+                continue
             response = send_request(sock, 'IssueTickets', {
                 'e_id': e_id,
                 't_type': t_type,
@@ -140,7 +160,12 @@ def admin_menu(sock):
             print(response.get('message', ''))
 
         elif choice == '3':
-            cu_id = int(input("Enter Customer ID to Query: ").strip())
+            cu_id = input("Enter Customer ID to Query: ").strip()
+            try:
+                cu_id = int(cu_id)
+            except ValueError:
+                print("Customer ID must be an integer.")
+                continue
             response = send_request(sock, 'QueryUserInfo', {'cu_id': cu_id})
             if response['status'] == 'success':
                 user_info = response['data']
@@ -150,17 +175,30 @@ def admin_menu(sock):
                 print(response['message'])
 
         elif choice == '4':
-            cu_id = int(input("Enter Customer ID to Query Purchase History: ").strip())
+            cu_id = input("Enter Customer ID to Query Purchase History: ").strip()
+            try:
+                cu_id = int(cu_id)
+            except ValueError:
+                print("Customer ID must be an integer.")
+                continue
             response = send_request(sock, 'QueryUserPurchaseHistory', {'cu_id': cu_id})
             if response['status'] == 'success':
                 history = response['data']
-                for record in history:
-                    print(f"Order ID: {record['or_id']}, Event: {record['e_name']}, Ticket Type: {record['t_type']}, Quantity: {record['quantity']}, Subtotal: {record['subtotal']}, Date: {record['or_date']}, Payment Status: {record['payment_status']}")
+                if not history:
+                    print("No purchase history found.")
+                else:
+                    for record in history:
+                        print(f"Order ID: {record['or_id']}, Event: {record['e_name']}, "
+                              f"Ticket Type: {record['t_type']}, Quantity: {record['quantity']}, "
+                              f"Subtotal: {record['subtotal']}, Date: {record['or_date']}, "
+                              f"Payment Status: {record['payment_status']}")
             else:
                 print(response['message'])
 
+        elif choice == '5':  # 新增
+            generate_sales_report(sock)
 
-        elif choice == '5':
+        elif choice == '6':
             response = send_request(sock, 'LogOut')
             print(response.get('message', ''))
             break
@@ -168,6 +206,31 @@ def admin_menu(sock):
         else:
             print("Invalid option. Please try again.")
 
+def generate_sales_report(sock):
+    print("\n--- Generate Sales Report ---")
+    event_id = input("Enter Event ID: ").strip()
+    try:
+        event_id = int(event_id)
+    except ValueError:
+        print("Event ID must be an integer.")
+        return
+
+    response = send_request(sock, 'GenerateSalesReport', {'event_id': event_id})
+    if response['status'] == 'success':
+        data = response['data']
+        print(f"\nSales Report for Event ID: {data['event_id']}")
+        print("----------------------------------------")
+        print("{:<20} {:<15} {:<15}".format("Ticket Type", "Tickets Sold", "Revenue"))
+        print("----------------------------------------")
+        for ticket in data['ticket_details']:
+            t_type = ticket.get('t_type', 'N/A')
+            tickets_sold = ticket.get('tickets_sold', 0)
+            revenue = ticket.get('revenue', '0.00')
+            print("{:<20} {:<15} {:<15}".format(t_type, tickets_sold, revenue))
+        print("----------------------------------------")
+        print(f"Total Revenue: {data['total_revenue']}")
+    else:
+        print(f"Error: {response['message']}")
 
 def regular_user_menu(sock):
     while True:
@@ -188,17 +251,33 @@ def regular_user_menu(sock):
             e_id = input("Enter Event ID: ").strip()
             t_type = input("Enter Ticket Type: ").strip()
             quantity = input("Enter Quantity: ").strip()
-            response = send_request(sock, 'BuyTicket', {'e_id': int(e_id), 't_type': t_type, 'quantity': int(quantity)})
+            try:
+                e_id = int(e_id)
+                quantity = int(quantity)
+            except ValueError:
+                print("Event ID and Quantity must be integers.")
+                continue
+            response = send_request(sock, 'BuyTicket', {'e_id': e_id, 't_type': t_type, 'quantity': quantity})
             print(response.get('message', ''))
 
         elif choice == '2':
             or_id = input("Enter Order ID to cancel: ").strip()
-            response = send_request(sock, 'CancelTicket', {'or_id': int(or_id)})
+            try:
+                or_id = int(or_id)
+            except ValueError:
+                print("Order ID must be an integer.")
+                continue
+            response = send_request(sock, 'CancelTicket', {'or_id': or_id})
             print(response.get('message', ''))
 
         elif choice == '3':
             e_id = input("Enter Event ID to view details: ").strip()
-            response = send_request(sock, 'ViewEventDetails', {'e_id': int(e_id)})
+            try:
+                e_id = int(e_id)
+            except ValueError:
+                print("Event ID must be an integer.")
+                continue
+            response = send_request(sock, 'ViewEventDetails', {'e_id': e_id})
             if response['status'] == 'success':
                 data = response['data']
                 for key, value in data.items():
@@ -232,21 +311,30 @@ def regular_user_menu(sock):
                     response = send_request(sock, 'ListEventByCategory', {'c_id': selected_c_id})
                     if response['status'] == 'success':
                         events = response['data']
-                        for event in events:
-                            print(f"ID: {event['e_id']}, Name: {event['e_name']}, Category: {event['c_name']}, Organizer: {event['o_name']}, Date & Time: {event['e_datetime']}, Location: {event['e_location']}")
+                        if not events:
+                            print("No events found in this category.")
+                        else:
+                            for event in events:
+                                print(f"ID: {event['e_id']}, Name: {event['e_name']}, "
+                                      f"Category: {event['c_name']}, Organizer: {event['o_name']}, "
+                                      f"Date & Time: {event['e_datetime']}, Location: {event['e_location']}")
                     else:
                         print(response['message'])
             else:
                 print(response['message'])
-
 
         elif choice == '5':
             search_term = input("Enter search term (Event Name or Organizer): ").strip()
             response = send_request(sock, 'SearchEvent', {'search_term': search_term})
             if response['status'] == 'success':
                 events = response['data']
-                for event in events:
-                    print(f"ID: {event['e_id']}, Name: {event['e_name']}, Category: {event['c_name']}, Organizer: {event['o_name']}, Date & Time: {event['e_datetime']}, Location: {event['e_location']}")
+                if not events:
+                    print("No matching events found.")
+                else:
+                    for event in events:
+                        print(f"ID: {event['e_id']}, Name: {event['e_name']}, "
+                              f"Category: {event['c_name']}, Organizer: {event['o_name']}, "
+                              f"Date & Time: {event['e_datetime']}, Location: {event['e_location']}")
             else:
                 print(response['message'])
 
@@ -254,7 +342,13 @@ def regular_user_menu(sock):
             or_id = input("Enter Order ID to make payment: ").strip()
             payment_method = input("Enter Payment Method: ").strip()
             amount = input("Enter Amount: ").strip()
-            response = send_request(sock, 'Payment', {'or_id': int(or_id), 'payment_method': payment_method, 'amount': float(amount)})
+            try:
+                or_id = int(or_id)
+                amount = float(amount)
+            except ValueError:
+                print("Order ID must be an integer and Amount must be a number.")
+                continue
+            response = send_request(sock, 'Payment', {'or_id': or_id, 'payment_method': payment_method, 'amount': amount})
             print(response.get('message', ''))
 
         elif choice == '7':
@@ -285,8 +379,14 @@ def regular_user_menu(sock):
             response = send_request(sock, 'ViewPurchaseHistory')
             if response['status'] == 'success':
                 history = response['data']
-                for record in history:
-                    print(f"Order ID: {record['or_id']}, Event: {record['e_name']}, Ticket Type: {record['t_type']}, Quantity: {record['quantity']}, Subtotal: {record['subtotal']}, Date: {record['or_date']}, Payment Status: {record['payment_status']}")
+                if not history:
+                    print("No purchase history found.")
+                else:
+                    for record in history:
+                        print(f"Order ID: {record['or_id']}, Event: {record['e_name']}, "
+                              f"Ticket Type: {record['t_type']}, Quantity: {record['quantity']}, "
+                              f"Subtotal: {record['subtotal']}, Date: {record['or_date']}, "
+                              f"Payment Status: {record['payment_status']}")
             else:
                 print(response['message'])
 
@@ -298,6 +398,31 @@ def regular_user_menu(sock):
         else:
             print("Invalid option. Please try again.")
 
+def generate_sales_report(sock):
+    print("\n--- Generate Sales Report ---")
+    event_id = input("Enter Event ID: ").strip()
+    try:
+        event_id = int(event_id)
+    except ValueError:
+        print("Event ID must be an integer.")
+        return
+
+    response = send_request(sock, 'GenerateSalesReport', {'event_id': event_id})
+    if response['status'] == 'success':
+        data = response['data']
+        print(f"\nSales Report for Event ID: {data['event_id']}")
+        print("----------------------------------------")
+        print("{:<20} {:<15} {:<15}".format("Ticket Type", "Tickets Sold", "Revenue"))
+        print("----------------------------------------")
+        for ticket in data['ticket_details']:
+            t_type = ticket.get('t_type', 'N/A')
+            tickets_sold = ticket.get('tickets_sold', 0)
+            revenue = ticket.get('revenue', '0.00')
+            print("{:<20} {:<15} {:<15}".format(t_type, tickets_sold, revenue))
+        print("----------------------------------------")
+        print(f"Total Revenue: {data['total_revenue']}")
+    else:
+        print(f"Error: {response['message']}")
 
 if __name__ == "__main__":
     main()

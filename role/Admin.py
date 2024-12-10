@@ -5,7 +5,8 @@ from action.admin import (
     add_event_action,
     issue_tickets_action,
     query_user_info_action,
-    query_user_purchase_history_action
+    query_user_purchase_history_action,
+    generate_sales_report_action
 )
 
 class Admin(Role):
@@ -23,3 +24,6 @@ class Admin(Role):
 
     def query_user_purchase_history(self, cu_id):
         return query_user_purchase_history_action(cu_id)
+
+    def get_sales_report(self, e_id):
+        return generate_sales_report_action(e_id)
