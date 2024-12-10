@@ -119,7 +119,15 @@ VALUES
 	('高雄巨蛋', '高雄市左營區博愛二路757號', 15000, '(07)9749888'),
 	('Legacy Taipei', '台北市中正區八德路一段1號華山1914創意文化園區中5A館', 1500, '(02)23956660');
 
-
+INSERT INTO TICKET (e_id, t_type, price, total_quantity, remain_quantity)
+VALUES
+    (240, 'VIP', 6880, 100, 90),
+    (240, 'VIP', 5880, 50, 45),
+    (240, 'Early Bird', 4880, 200, 200),
+    (240, 'Group', 3880, 300, 250),
+    (240, 'Group', 3280, 300, 250),
+    (240, 'Group', 2280, 300, 250),
+    (240, 'Group', 1880, 300, 250);
 
 
 -- select * from "ORDER"

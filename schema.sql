@@ -125,4 +125,4 @@ SELECT setval('"ORDER_or_id_seq"', COALESCE((SELECT MAX(or_id) FROM "ORDER"),0)+
 SELECT setval('payment_p_id_seq', COALESCE((SELECT MAX(p_id) FROM PAYMENT),0)+1, false);
 SELECT setval('venue_v_id_seq', COALESCE((SELECT MAX(v_id) FROM VENUE),0)+1, false);
 
-
+CREATE INDEX idx_order_cu_id_or_date ON "ORDER" (cu_id, or_date);
